@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Competitors' Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16213a; --ink-2:#48536b; --muted:#77829a; --paper:#eff2f7; --card:#ffffff;
+  --line:#dde2eb; --amber:#e0780f; --amber-soft:#fdeedd; --danger:#b3261e; --ok:#1f7a4d;
+  --side:#0b1526; --side-2:#132039; --side-ink:#dfe6f2; --side-muted:#7d8aa5;
+  --grad:linear-gradient(90deg,#f7931e,#e8364f);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--ink:#e8edf6;--ink-2:#aeb8cc;--muted:#7f8aa3;--paper:#0d1829;--card:#15223a;--line:#24344f;--amber:#f7931e;--amber-soft:#3a2a14;--danger:#f2837a;--ok:#4fd08f;color-scheme:dark}
+}
+:root[data-theme="dark"]{--ink:#e8edf6;--ink-2:#aeb8cc;--muted:#7f8aa3;--paper:#0d1829;--card:#15223a;--line:#24344f;--amber:#f7931e;--amber-soft:#3a2a14;--danger:#f2837a;--ok:#4fd08f;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+html,body{height:100%}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--side)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+/* Shell (matches SCC Team Portal) */
+.app{display:flex;min-height:100%}
+.side{background:var(--side);color:var(--side-ink);display:flex}
+.brand{padding:18px 18px 16px;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.brand b{color:#f7931e;font-weight:800}
+.side nav{display:flex;flex-direction:column;gap:2px;padding:6px 12px;overflow:auto;flex:1}
+.side nav button{display:flex;align-items:center;gap:11px;border:0;background:none;color:var(--side-muted);padding:10px 12px;border-radius:10px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-align:left}
+.side nav button svg{width:17px;height:17px;flex:none}
+.side nav button:hover{background:var(--side-2);color:var(--side-ink)}
+.side nav button[aria-selected="true"]{background:var(--side-2);color:#fff}
+.side nav button.home{background:var(--grad);color:#fff;text-transform:none;letter-spacing:0;font-size:14px;margin-bottom:10px;box-shadow:0 6px 18px rgba(232,54,79,.28)}
+.side nav button.home[aria-selected="true"]{box-shadow:0 0 0 2px rgba(255,255,255,.35),0 6px 18px rgba(232,54,79,.28)}
+.side nav .count{margin-left:auto;font-size:11px;letter-spacing:0;background:var(--side-2);color:var(--side-ink);border-radius:999px;padding:1px 8px}
+.side nav button[aria-selected="true"] .count{background:#0b1526}
+.sidefoot{border-top:1px solid var(--side-2);padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px}
+.sidefoot .sbtn{display:flex;align-items:center;gap:10px;border:0;background:none;color:var(--side-ink);padding:7px 2px;font-size:13.5px}
+.sidefoot .sbtn svg{width:17px;height:17px}
+.sidefoot a.sbtn{text-decoration:none}
+.sidefoot small{color:var(--side-muted);font-size:11px}
+.main{flex:1;min-width:0}
+.wrap{padding:20px 24px 48px;max-width:1180px}
+
+.hero{position:relative;border-radius:16px;overflow:hidden;color:#eef3fb;padding:40px 20px 44px;background:radial-gradient(ellipse 60% 45% at 50% 0%,rgba(247,120,30,.6),transparent 70%),radial-gradient(ellipse 90% 60% at 50% 55%,rgba(28,78,160,.45),transparent 75%),#0a1730}
+.hero h2{text-align:center;margin:6px 0 6px;font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:.01em;color:#fff}
+.hero p.lead{text-align:center;margin:0 auto;max-width:560px;color:#c7d1e3;font-size:14.5px}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;max-width:760px;margin:44px auto 0}
+.mod{--c:#3b82f6;position:relative;text-align:left;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:rgba(28,45,78,.62);color:#eef3fb;border-radius:12px;padding:14px 14px 13px;display:flex;flex-direction:column;gap:6px;transition:transform .15s,background .15s}
+.mod:hover{transform:translateY(-2px);background:rgba(34,55,94,.8)}
+.mod .ic{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--c)}
+.mod .ic svg{width:19px;height:19px}
+.mod .open{position:absolute;top:14px;right:14px;font-size:11.5px;font-weight:600;padding:2px 10px;border-radius:999px;background:color-mix(in srgb,var(--c) 22%,transparent);color:color-mix(in srgb,var(--c) 70%,#fff)}
+.mod h3{margin:4px 0 0;font-size:15px}
+.mod p{margin:0;font-size:13px;color:#b8c3d8;line-height:1.45}
+.mod .live-count{font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--c) 55%,#fff)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chips span{font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:#d6deec}
+@media (prefers-reduced-motion:reduce){.mod{transition:none}.mod:hover{transform:none}}
+
+.pagehead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:6px}
+h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.sub{color:var(--muted);font-size:14px;margin:4px 0 14px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.live.on .dot{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 16px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:10px 14px;font-weight:700;font-size:14.5px;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--amber)}
+.tabs .n{font-size:11.5px;background:var(--line);border-radius:999px;padding:1px 8px;margin-left:4px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card + .card{margin-top:14px}
+.card h2{margin:0 0 4px;font-size:17px;font-weight:800}
+.hint{color:var(--muted);font-size:13.5px;margin:0}
+.btn{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:8px;font-weight:600;font-size:14px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--grad);color:#fff;border-color:transparent}
+.btn.primary:hover{filter:brightness(1.07);border-color:transparent}
+.btn.danger{color:var(--danger)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.sm{min-height:32px;padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.spacer{flex:1}
+.field{display:flex;flex-direction:column;gap:4px}
+.field > span{font-size:13px;font-weight:600;color:var(--ink-2)}
+.field input,.field select,.field textarea,.inp{padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);width:100%;min-height:42px;font-size:15px}
+.field textarea{min-height:76px;resize:vertical}
+.num{font-variant-numeric:tabular-nums}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.batch{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,260px));gap:10px;margin-top:14px}
+.shoot{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:14px}
+.shoot-main{display:flex;align-items:center;gap:16px;border:2px dashed color-mix(in srgb,var(--amber) 70%,transparent);background:var(--amber-soft);border-radius:12px;padding:20px;cursor:pointer;color:var(--ink)}
+.shoot-main svg{flex:none;color:var(--amber)}
+.shoot-main b{display:block;font-size:17px;font-weight:800}
+.shoot-main small{font-size:13px;color:var(--ink-2)}
+.shoot-alt{display:flex;align-items:center}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.thumb{position:relative;width:92px;height:92px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--paper)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:15px;line-height:26px;padding:0}
+.status{margin-top:10px;font-size:13.5px;color:var(--muted);min-height:20px}
+.status.err{color:var(--danger)}
+
+.erows{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.ehead,.erow{display:grid;gap:8px;align-items:center}
+.ehead{font-size:12.5px;font-weight:700;color:var(--ink-2);padding:0 2px}
+.erow .inp{min-height:38px;padding:7px 9px;font-size:14px}
+.erow .x{width:38px;height:38px;border:0;background:none;color:var(--danger);font-size:20px;border-radius:8px}
+.erow .x:hover{background:var(--paper)}
+.erows.cards .ehead{display:none}
+.erows.cards .erow{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))!important;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--paper)}
+.erows.cards .erow .inp{background:var(--card)}
+.erows.cards .erow .wide{grid-column:1/-1}
+.erows.cards .erow label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.erows.cards .erow .x{justify-self:end;grid-column:-2/-1}
+@media (max-width:760px){
+  .erows.rows .ehead{display:none}
+  .erows.rows .erow{grid-template-columns:1fr 1fr!important;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--paper)}
+  .erows.rows .erow .wide{grid-column:1/-1;order:-1}
+  .erows.rows .erow .x{grid-column:2;justify-self:end}
+  .shoot{grid-template-columns:1fr}
+}
+
+.mgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:14px}
+@media (max-width:760px){.mgrid{grid-template-columns:1fr 1fr}.mgrid > *{grid-column:span 1!important}.mgrid > .wide{grid-column:1/-1!important}}
+
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.search,.filter{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);min-height:40px}
+.search{flex:1 1 240px}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer;min-height:32px}
+.chk input{width:17px;height:17px;accent-color:var(--amber);margin:0}
+.twrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:12px}
+.dtable{width:100%;border-collapse:collapse;min-width:820px}
+.dtable th{background:var(--paper);text-align:left;font-size:12.5px;font-weight:700;color:var(--ink-2);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.dtable td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+.dtable tr:last-child td{border-bottom:0}
+.dtable tbody tr:hover td{background:color-mix(in srgb,var(--paper) 70%,transparent)}
+.dtable td.num,.dtable th.num{text-align:right;white-space:nowrap}
+.dtable .clip{max-width:280px;color:var(--ink-2)}
+.dtable .sdot{width:9px;height:9px;border-radius:50%;background:var(--line);display:inline-block;margin-top:5px}
+.dtable .sdot.in{background:var(--ok)}
+.empty{padding:36px 16px;text-align:center;color:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--line)}
+.legend i.in{background:var(--ok)}
+.banner{margin-top:12px;padding:12px 14px;border-radius:10px;background:color-mix(in srgb,var(--ok) 14%,var(--card));display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner p{margin:0;flex:1 1 260px;font-size:14px}
+.copybox{width:100%;min-height:110px;margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:8px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+
+/* Summary */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:12px 0 4px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.stat b{display:block;font-size:22px;font-weight:800;line-height:1.15}
+.stat span{font-size:12.5px;color:var(--muted)}
+.card h3{margin:18px 0 0;font-size:14.5px;font-weight:800}
+.card .twrap .dtable{min-width:640px}
+.scroll{max-height:420px;overflow:auto}
+.scroll thead th{position:sticky;top:0;z-index:1}
+.bars{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.bar{display:grid;grid-template-columns:140px 1fr 40px;gap:10px;align-items:center;font-size:13.5px}
+.bar .track{height:10px;border-radius:5px;background:var(--paper);overflow:hidden;border:1px solid var(--line)}
+.bar .track i{display:block;height:100%;background:var(--grad)}
+.bar b{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--ok);font-weight:700}
+/* Photos */
+.phbox{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.phbox .thumb{width:84px;height:84px}
+.phadd{display:flex;gap:8px;flex-wrap:wrap}
+.tthumbs{display:flex;gap:4px;flex-wrap:nowrap}
+.tthumbs button{padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:44px;height:44px;background:var(--paper);flex:none}
+.tthumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.tthumbs .more{font-size:12px;font-weight:700;color:var(--ink-2)}
+.lightbox{position:fixed;inset:0;z-index:60;background:rgba(6,10,20,.88);display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px;object-fit:contain}
+.lightbox .lbx{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:22px}
+.lightbox .lbn{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:24px}
+.lightbox .prev{left:12px}.lightbox .next{right:12px}
+/* Top panel */
+.app{display:block}
+:root{padding-top:0}
+.side{position:sticky;top:0;z-index:30;width:auto;height:auto;flex-direction:row;align-items:center;gap:8px;padding:env(safe-area-inset-top,0px) 16px 0}
+.brand{padding:12px 4px;white-space:nowrap}
+.side nav{flex-direction:row;padding:8px;gap:4px;overflow-x:auto;flex:1}
+.side nav button{white-space:nowrap;padding:8px 12px}
+.sidefoot{border-top:0;padding:0;flex-direction:row;align-items:center;gap:14px;white-space:nowrap}
+.wrap{margin:0 auto}
+@media (max-width:760px){
+  .side{flex-wrap:wrap;padding-left:10px;padding-right:10px;gap:0}
+  .brand{font-size:13px;padding:10px 4px 0;flex:1}
+  .sidefoot small{display:none}
+  .sidefoot{padding-top:6px}
+  .side nav{order:3;flex:1 1 100%;padding:6px 0 8px}
+  .side nav button{font-size:11.5px;padding:8px 10px}
+  .wrap{padding:16px 14px 40px}
+}
+/* ===== Layout system: laptop / tablet / mobile ===== */
+:root{--pad:24px;--maxw:1180px}
+@media (max-width:1024px){:root{--pad:20px}}
+@media (max-width:600px){:root{--pad:14px}}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:24px var(--pad) 56px}
+.side{padding-left:max(var(--pad),calc((100% - var(--maxw))/2 + var(--pad)));padding-right:max(var(--pad),calc((100% - var(--maxw))/2 + var(--pad)));gap:16px}
+.side .brand{padding:14px 0}
+.side nav{padding:8px 0}
+.pagehead{margin-bottom:4px;align-items:center}
+.side .sidefoot small{display:none}
+.side nav{flex:0 1 auto;margin-right:auto}
+.side nav button{letter-spacing:.04em}
+.sub{margin:4px 0 16px}
+.card{padding:20px}
+.card + .card{margin-top:16px}
+.card > .hint{margin-bottom:2px}
+.field input,.field select,.inp,.search,.filter{height:42px;min-height:42px;line-height:1.2}
+.field input[type=date]{padding-top:0;padding-bottom:0}
+.field textarea{height:auto;min-height:84px}
+.status:empty{display:none}
+.row{margin-top:16px}
+
+/* Form grid */
+.fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 14px;margin-top:16px}
+.fgrid > *{grid-column:span var(--s,1);min-width:0}
+.batch{margin-top:16px}
+
+/* Capture tiles */
+.shoot{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.shoot .shoot-main{grid-column:span 2;min-height:96px;padding:18px 20px}
+.shoot .shoot-main.alt{border-color:var(--line);background:var(--paper)}
+.shoot .shoot-main.alt svg{color:var(--ink-2)}
+.thumbs:empty{display:none}
+
+/* Records toolbar */
+.tools{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:12px;margin-top:16px}
+.tools .search{width:100%}
+.rbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-top:12px}
+.chks{display:flex;flex-wrap:wrap;gap:6px 20px}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.twrap{margin-top:16px}
+.dtable td{vertical-align:middle}
+.dtable .clip{color:var(--ink)}
+.dtable td.c-act{white-space:nowrap;text-align:right}
+.dtable td.c-dot{width:28px}
+.dtable td.c-rec{min-width:160px;font-size:13.5px}
+.dtable td.c-rec b{display:block;font-weight:700}
+.dtable td.c-rec small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+.legend{margin-top:12px}
+
+/* Summary */
+.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 4px}
+.stat{min-width:0}
+.stat b{font-size:20px}
+.card h3{margin:20px 0 0}
+.bars{margin-top:10px}
+
+/* Tablet */
+@media (max-width:1024px){
+  .fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fgrid > *{grid-column:span var(--t,1)}
+  .shoot{grid-template-columns:1fr 1fr}
+  .shoot .shoot-main{grid-column:span 1}
+  .side nav button{padding:8px 10px;letter-spacing:.03em}
+  .side .sidefoot small{display:none}
+  .dtable th,.dtable td{padding:9px 10px;font-size:13.5px}
+  .card .twrap .dtable{min-width:0}
+}
+@media (max-width:860px){
+  /* Tables become stacked cards */
+  .twrap:has(.stack){overflow:visible;background:none;border:0;border-radius:0}
+  .dtable.stack,.dtable.stack tbody{display:block;min-width:0!important;width:100%}
+  .dtable.stack thead{display:none}
+  .dtable.stack tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+  .card .dtable.stack tr{background:var(--paper)}
+  .dtable.stack td{display:block;padding:0;border:0;text-align:left!important;white-space:normal!important;font-size:14px;min-width:0;overflow-wrap:anywhere}
+  .dtable.stack td::before{content:attr(data-label);display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:1px}
+  .dtable.stack td.c-wide,.dtable.stack td.clip{grid-column:span 2}
+  .dtable.stack td.c-dot{grid-column:1/-1;display:flex;align-items:center;gap:8px;width:auto;order:-1}
+  .dtable.stack td.c-dot::before{order:2;margin:0;font-size:12px}
+  .dtable.stack td.c-dot .sdot{margin:0}
+  .dtable.stack td.c-act{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--line);padding-top:8px}
+  .dtable.stack td.c-act::before{display:none}
+  .dtable.stack td.empty{grid-column:1/-1;padding:20px 8px}
+  .dtable.stack td.empty::before{display:none}
+  .dtable.stack td.c-wide,.dtable.stack td.clip{order:-1}
+  .dtable.stack td.c-dot{order:-2}
+  .scroll{max-height:none}
+}
+@media (max-width:600px){
+  /* Tables become stacked cards */
+  .twrap:has(.stackm){overflow:visible;background:none;border:0;border-radius:0}
+  .dtable.stackm,.dtable.stackm tbody{display:block;min-width:0!important;width:100%}
+  .dtable.stackm thead{display:none}
+  .dtable.stackm tr{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+  .card .dtable.stackm tr{background:var(--paper)}
+  .dtable.stackm td{display:block;padding:0;border:0;text-align:left!important;white-space:normal!important;font-size:14px;min-width:0;overflow-wrap:anywhere}
+  .dtable.stackm td::before{content:attr(data-label);display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:1px}
+  .dtable.stackm td.c-wide,.dtable.stackm td.clip{grid-column:1/-1}
+  .dtable.stackm td.c-dot{grid-column:1/-1;display:flex;align-items:center;gap:8px;width:auto;order:-1}
+  .dtable.stackm td.c-dot::before{order:2;margin:0;font-size:12px}
+  .dtable.stackm td.c-dot .sdot{margin:0}
+  .dtable.stackm td.c-act{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--line);padding-top:8px}
+  .dtable.stackm td.c-act::before{display:none}
+  .dtable.stackm td.empty{grid-column:1/-1;padding:20px 8px}
+  .dtable.stackm td.empty::before{display:none}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dtable.stack tr{grid-template-columns:1fr 1fr;gap:8px 12px}
+  .dtable.stack td.c-wide,.dtable.stack td.clip{grid-column:1/-1}
+}
+@media (max-width:860px){
+  .side{flex-wrap:wrap;gap:0 12px}
+  .side .brand{flex:1;padding:12px 0 4px}
+  .side .sidefoot{padding-top:6px}
+  .side nav{order:3;flex:1 1 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:6px 0 10px;overflow:visible}
+  .side nav button{position:relative;flex-direction:column;justify-content:center;gap:4px;padding:8px 4px;text-transform:none;letter-spacing:0;font-size:12px;text-align:center}
+  .side nav .count{position:absolute;top:4px;right:6px;margin:0;font-size:10px;padding:0 6px}
+}
+
+/* Mobile */
+@media (max-width:600px){
+  .card{padding:16px}
+  .pagehead h1{font-size:22px}
+  .fgrid{gap:12px 10px}
+  .fgrid > *{grid-column:span var(--m,2)}
+  .shoot{grid-template-columns:1fr;gap:10px}
+  .shoot .shoot-main{min-height:0;padding:14px 16px}
+  .shoot .shoot-main svg{width:32px;height:32px}
+  .tabs{gap:0}
+  .tabs button{flex:1 1 0;padding:10px 4px;font-size:13.5px;text-align:center}
+  .tools{grid-template-columns:1fr}
+  .rbar{flex-direction:column;align-items:stretch}
+  .acts{display:grid;grid-template-columns:1fr}
+  .acts .btn{width:100%}
+  .row > .btn.primary{flex:1 1 auto}
+  .side nav button{font-size:11px}
+  .side nav button svg{width:16px;height:16px}
+  .bar{grid-template-columns:96px 1fr 28px}
+}
+/* Overlay */
+.ov{position:fixed;inset:0;z-index:70;background:rgba(6,10,20,.6);display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.ovbox{background:var(--card);color:var(--ink);border-radius:16px;padding:28px 24px 22px;width:min(400px,100%);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.ovbox h2{margin:14px 0 6px;font-size:18px;font-weight:800}
+.ovbox p{margin:0;color:var(--ink-2);font-size:14.5px}
+.ovacts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.ovacts .btn{min-width:120px}
+.spin{width:48px;height:48px;margin:0 auto;border-radius:50%;border:5px solid var(--line);border-top-color:#f7931e;border-right-color:#e8364f;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
+.ovic{width:52px;height:52px;margin:0 auto;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:800;color:#fff;background:var(--ok)}
+.ovic.warn{background:#e0780f}
+.ovic.err{background:var(--danger)}
+body.noscroll{overflow:hidden}
+.thumb.done::after{content:"✓";position:absolute;left:4px;bottom:4px;width:20px;height:20px;border-radius:50%;background:var(--ok);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center}
+/* Tables on every screen size: scroll inside the box, header row and first 3 columns frozen */
+.twrap{overflow:auto!important;max-height:min(70vh,640px);background:var(--card)!important;border:1px solid var(--line)!important;border-radius:12px!important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.dtable{border-collapse:separate;border-spacing:0;width:100%;min-width:0!important}
+.dtable th,.dtable td{white-space:nowrap}
+.dtable td.clip{white-space:normal;min-width:220px;max-width:320px}
+.dtable td.c-rec{white-space:nowrap}
+.dtable thead th{position:sticky;top:0;z-index:3;background:var(--paper)}
+.dtable .frz{position:sticky;z-index:2;background:var(--card)}
+.dtable thead th.frz{z-index:4;background:var(--paper)}
+.dtable .frz-last{box-shadow:inset -1px 0 0 var(--line),6px 0 8px -6px rgba(0,0,0,.22)}
+.dtable tbody tr:hover td{background:var(--paper)}
+.dtable td.empty{position:static;white-space:normal}
+@media (max-width:860px){
+  .dtable th,.dtable td{padding:8px 9px;font-size:13px}
+  .dtable td.c-dot,.dtable th:first-child{padding-left:10px;padding-right:4px}
+  .dtable td.clip{min-width:200px}
+  .twrap{max-height:65vh}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">Competitors’ <b>Database</b></div>
+    <nav role="tablist" aria-label="Database sections">
+      <button role="tab" data-go="summary" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17v-5M13 17V8M18 17v-9"/></svg><span>Summary</span></button>
+      <button role="tab" data-go="price" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Price Survey</span><span class="count" data-count="price">0</span></button>
+      <button role="tab" data-go="programs" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Programs</span><span class="count" data-count="programs">0</span></button>
+      <button role="tab" data-go="merch" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="11" rx="1.5"/><path d="M8 15v5M16 15v5M7 8h10M7 11h6"/></svg><span>Merchandising</span><span class="count" data-count="merch">0</span></button>
+    </nav>
+    <div class="sidefoot">
+      <button class="sbtn" id="themeBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span id="themeLbl">Dark mode</span></button>
+      <a class="sbtn" id="sheetLink" href="#" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg><span>Google Sheet</span></a>
+      <small id="storeFoot">Connecting…</small>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="wrap">
+      <section data-panel="summary"></section>
+      <section data-panel="price" hidden></section>
+      <section data-panel="programs" hidden></section>
+      <section data-panel="merch" hidden></section>
+    </div>
+  </main>
+</div>
+
+<datalist id="brandList"></datalist>
+<datalist id="merchList"><option value="Signage"><option value="Tarpaulin"><option value="Racks"><option value="Display stand"><option value="Shelf strip"><option value="Poster"><option value="Banner"><option value="Wobbler"><option value="Streamer"><option value="Bunting"><option value="Wall paint / wall branding"><option value="Lightbox"><option value="Counter top display"><option value="Oil change board"><option value="Uniform"></datalist>
+<datalist id="viscList"><option value="0W-20"><option value="5W-30"><option value="5W-40"><option value="10W-30"><option value="10W-40"><option value="15W-40"><option value="15W-50"><option value="20W-40"><option value="20W-50"><option value="SAE 30"><option value="SAE 40"><option value="SAE 50"><option value="75W-90"><option value="80W-90"><option value="85W-140"><option value="NLGI 2"><option value="NLGI 3"></datalist>
+<datalist id="packList"><option value="0.7L"><option value="0.8L"><option value="1L"><option value="3.5L"><option value="4L"><option value="5L"><option value="18L"><option value="20L"><option value="200L"><option value="208L"><option value="500g"><option value="1kg"><option value="15kg"></datalist>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const el=(tag,props,...kids)=>{const e=document.createElement(tag); if(props) for(const k in props){ if(k==="class") e.className=props[k]; else if(k==="text") e.textContent=props[k]; else if(k.startsWith("on")) e[k]=props[k]; else if(k==="style") e.style.cssText=props[k]; else e.setAttribute(k,props[k]); } kids.flat().forEach(c=>c!=null&&e.append(c)); return e;};
+const today=()=>{const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10);};
+const peso=n=>(n==null||n==="")?"":"₱"+Number(n).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const toNum=v=>{ if(v==null) return null; const s=String(v).replace(/[₱,\s]|php/gi,""); if(s==="") return null; const n=parseFloat(s); return isFinite(n)?Math.round(n*100)/100:null; };
+const toDate=v=>{ const s=String(v||"").trim(); return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:""; };
+const clean=v=>String(v==null?"":v).trim();
+function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2600); }
+const COMMON_BRANDS=["Petron","Shell","Caltex","Castrol","Mobil","Phoenix","Seaoil","Cleanfuel","Total","Repsol","Motul","Liqui Moly","Valvoline","Havoline","Yamalube","Honda","Suzuki","Kawasaki"];
+
+/* ---------- Theme (same behaviour as the portal) ---------- */
+try{ const t=localStorage.getItem("theme"); if(t) document.documentElement.dataset.theme=t; }catch(_){}
+const effTheme=()=>document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+const syncThemeLbl=()=>{ $("themeLbl").textContent=effTheme()==="dark"?"Light mode":"Dark mode"; };
+$("themeBtn").onclick=()=>{ const n=effTheme()==="dark"?"light":"dark"; document.documentElement.dataset.theme=n; try{localStorage.setItem("theme",n)}catch(_){}; syncThemeLbl(); };
+syncThemeLbl();
+
+/* ---------- Module definitions ---------- */
+const PROVINCES=["","Metro Manila (NCR)","Abra","Agusan del Norte","Agusan del Sur","Aklan","Albay","Antique","Apayao","Aurora","Basilan","Bataan","Batanes","Batangas","Benguet","Biliran","Bohol","Bukidnon","Bulacan","Cagayan","Camarines Norte","Camarines Sur","Camiguin","Capiz","Catanduanes","Cavite","Cebu","Cotabato","Davao de Oro","Davao del Norte","Davao del Sur","Davao Occidental","Davao Oriental","Dinagat Islands","Eastern Samar","Guimaras","Ifugao","Ilocos Norte","Ilocos Sur","Iloilo","Isabela","Kalinga","La Union","Laguna","Lanao del Norte","Lanao del Sur","Leyte","Maguindanao del Norte","Maguindanao del Sur","Marinduque","Masbate","Misamis Occidental","Misamis Oriental","Mountain Province","Negros Occidental","Negros Oriental","Northern Samar","Nueva Ecija","Nueva Vizcaya","Occidental Mindoro","Oriental Mindoro","Palawan","Pampanga","Pangasinan","Quezon","Quirino","Rizal","Romblon","Samar","Sarangani","Siquijor","Sorsogon","South Cotabato","Southern Leyte","Sultan Kudarat","Sulu","Surigao del Norte","Surigao del Sur","Tarlac","Tawi-Tawi","Zambales","Zamboanga del Norte","Zamboanga del Sur","Zamboanga Sibugay"];
+const MODULES={
+  price:{
+    key:"price", title:"Price Survey", noun:"price", col:"survey/prices", localKey:"uli-price-survey-v1",
+    sub:"Competitor pricelists captured on field visits.",
+    photoTitle:"Capture a price list", photoHint:"Take a clear, straight photo. For long lists, shoot one section at a time so the small print stays readable.",
+    photoBtn:"Read prices from photo", manualTitle:"Enter a price manually",
+    manualHint:"Date, province, brand and your recorder details stay filled in after each save, so you can log a whole price list quickly.",
+    layout:"rows", reviewCols:"1fr 1.7fr .9fr .7fr .9fr .9fr 38px",
+    batch:["date","location"], keep:["date","location","brand"], sortKey:"product",
+    fields:[
+      {k:"date",label:"Date Recorded",type:"date",span:2,req:1},
+      {k:"location",label:"Location (Province)",type:"select",opts:PROVINCES,span:4,req:1},
+      {k:"brand",label:"Brand",list:"brandList",span:2,req:1,ph:"e.g. Petron"},
+      {k:"product",label:"Product Name",span:4,req:1,wide:1,ph:"e.g. Rev-X HD"},
+      {k:"viscosity",label:"Viscosity Grade",list:"viscList",span:3,ph:"e.g. 15W-40"},
+      {k:"packsize",label:"Packsize",list:"packList",span:3,ph:"e.g. 1L"},
+      {k:"trade",label:"Trade Price",type:"money",span:3},
+      {k:"srp",label:"SRP/RRP",type:"money",span:3}
+    ],
+    validate:r=> (r.trade==null&&r.srp==null)?"Enter at least a trade price or an SRP/RRP.":"",
+    prompt:`You are reading photos of a competitor's lubricant / motor oil price list, taken by a sales manager during a market visit in the Philippines.
+
+Extract every product line visible in the photo(s). For each line return:
+- "brand": the brand (e.g. Petron, Shell, Castrol). If the brand appears only as a header, logo or title of the list, apply it to every row under it.
+- "product_name": the product line name WITHOUT the viscosity grade and WITHOUT the pack size (e.g. "Rev-X HD").
+- "viscosity": the viscosity grade, normalized like "15W-40", "20W-50", "10W-30", "5W-30", "SAE 40", "80W-90", "85W-140"; for greases the NLGI grade like "NLGI 2"; for ATF or products with no grade, "". If the grade appears only in a column or section header, apply it to the rows under it.
+- "packsize": the pack size as written, normalized like "0.8L", "1L", "4L", "18L", "208L", "500g". Empty string if not shown.
+- "trade_price": the dealer / trade / distributor / net / wholesale price as a number (no peso sign, no commas). null if not shown.
+- "srp": the SRP / RRP / suggested retail / retail price as a number. null if not shown.
+
+If a single product is listed in several pack sizes (columns), output one row per pack size.
+If only one price column exists and its label is unclear, put it in "srp" when it is a retail/SRP list, otherwise in "trade_price".
+Copy numbers exactly as printed. Do not guess values that are not legible. Skip headers, totals and non-product lines.
+
+Reply with only a JSON array, for example:
+[{"brand":"Petron","product_name":"Rev-X HD","viscosity":"15W-40","packsize":"1L","trade_price":245.5,"srp":289}]
+If no price list is readable, reply with [].`,
+    fromAI:o=>({brand:clean(o.brand),product:clean(o.product_name||o.product),viscosity:clean(o.viscosity).toUpperCase(),packsize:clean(o.packsize),trade:toNum(o.trade_price),srp:toNum(o.srp)}),
+    keepRow:r=>r.product||r.brand
+  },
+  merch:{
+    key:"merch", title:"Merchandising", noun:"merchandising item", col:"survey/merchandising", localKey:"uli-competitor-merch-v1", photo:false, file:"competitor-merchandising-",
+    sub:"Competitor merchandising materials seen at outlets: signage, tarpaulins, racks and displays.",
+    manualTitle:"Record merchandising", manualHint:"Date, brand, province and your recorder details stay filled in after each save, so you can log several items at one outlet quickly.",
+    layout:"cards", batch:[], keep:["date","brand","area"], sortKey:"items",
+    fields:[
+      {k:"date",label:"Date Recorded",type:"date",span:2,req:1},
+      {k:"brand",label:"Brand",list:"brandList",span:2,req:1,ph:"e.g. Castrol"},
+      {k:"area",label:"Location (Province)",type:"select",opts:PROVINCES,span:2,req:1},
+      {k:"items",label:"Merchandising Items",list:"merchList",span:6,wide:1,req:1,ph:"e.g. Signage, tarpaulin, racks"},
+      {k:"photos",label:"Photos",type:"photos",span:6,wide:1}
+    ],
+    validate:r=>"", keepRow:r=>r.items
+  },
+  programs:{
+    key:"programs", title:"Programs", noun:"program", col:"survey/programs", localKey:"uli-competitor-programs-v1", photo:false, file:"competitor-programs-",
+    sub:"Competitor trade and consumer programs seen in the market.",
+    photoTitle:"Capture a program flyer", photoHint:"Photograph the flyer, poster, circular or announcement. Include the fine print where the mechanics and rewards are shown.",
+    photoBtn:"Read program from photo", manualTitle:"Enter a program manually",
+    manualHint:"Date, brand, province and your recorder details stay filled in after each save.",
+    layout:"cards",
+    batch:["date","area"], keep:["date","brand","area"], sortKey:"program",
+    fields:[
+      {k:"date",label:"Date Recorded",type:"date",span:2,req:1},
+      {k:"brand",label:"Brand",list:"brandList",span:2,req:1,ph:"e.g. Shell"},
+      {k:"area",label:"Location (Province)",type:"select",opts:PROVINCES,span:2,req:1},
+      {k:"program",label:"Program Name",span:6,req:1,wide:1,ph:"e.g. Helix Buy & Win"},
+      {k:"mechanics",label:"Mechanics",type:"long",span:6,wide:1,req:1,ph:"e.g. Buy 1 case of Helix HX7 1L within the promo period"},
+      {k:"rewards",label:"Rewards",type:"long",span:6,wide:1,ph:"e.g. 2 free bottles of 1L per case"}
+    ],
+    validate:r=>"",
+    prompt:`You are reading photos of a competitor's lubricant / motor oil promotional material (flyer, poster, trade circular, price-off or loyalty program announcement), taken by a sales manager during a market visit in the Philippines.
+
+Extract every distinct program shown. For each return:
+- "brand": the brand running the program (e.g. Shell, Petron, Castrol).
+- "program_name": the program or promo title as printed; if none, a short descriptive name.
+- "mechanics": how to qualify, in one or two plain sentences (who it is for, products and pack sizes covered, purchase requirement, validity period and limits if printed).
+- "rewards": what the participant gets (free goods, discount, cash rebate, item, points, raffle prize), as printed; "" if not stated.
+
+Do not guess text that is not legible.
+Reply with only a JSON array, for example:
+[{"brand":"Shell","program_name":"Helix Buy & Win","mechanics":"For consumers. Buy any Helix HX5 or HX7 4L from Oct 1 to Dec 31, 2026.","rewards":"Free Shell tumbler per purchase, while supplies last."}]
+If no program is readable, reply with [].`,
+    fromAI:o=>({brand:clean(o.brand),program:clean(o.program_name||o.program),mechanics:clean(o.mechanics),rewards:clean(o.rewards)}),
+    keepRow:r=>r.program||r.mechanics
+  }
+};
+
+const REC_KEYS=["recName","recPosition","recCompany"];
+const REC_FIELDS=[{k:"recName",label:"Recorder Name",req:1,rec:1,ph:"e.g. Juan Dela Cruz"},{k:"recPosition",label:"Position",req:1,rec:1,ph:"e.g. Area Sales Manager"},{k:"recCompany",label:"Company",req:1,rec:1,ph:"e.g. Unioil Lubricants, Inc."}];
+Object.values(MODULES).forEach(m=>{ m.fields.push(...REC_FIELDS.map(f=>({...f}))); m.keep.push(...REC_KEYS); });
+MODULES.price.batch.push(...REC_KEYS);
+const REC_STORE="uli-recorder-v1";
+const getRecorder=()=>{ try{ return JSON.parse(localStorage.getItem(REC_STORE)||"{}"); }catch(e){ return {}; } };
+const recorderFillers=[];
+function saveRecorder(r){ const o={}; REC_KEYS.forEach(k=>{ if(r[k]) o[k]=r[k]; }); if(!Object.keys(o).length) return; try{ localStorage.setItem(REC_STORE,JSON.stringify({...getRecorder(),...o})); }catch(e){} recorderFillers.forEach(fn=>fn()); }
+const recLabel=r=>{ const n=r.recName||"", p=r.recPosition||"", c=r.recCompany||""; return [n,[p,c].filter(Boolean).join(", ")].filter(Boolean).join(" — "); };
+function setVal(f,i,v){ v=v==null?"":v; if(f.type==="select"&&v&&![...i.options].some(o=>o.value===v)) i.append(el("option",{value:v,text:v})); i.value=v; }
+/* Grid spans per field: [laptop of 4, tablet of 2, mobile of 2] */
+const GRID={
+  price:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,2],location:[3,1,2],brand:[1,1,2],product:[3,1,2],viscosity:[1,1,1],packsize:[1,1,1],trade:[1,1,1],srp:[1,1,1]},
+  programs:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],program:[4,2,2],mechanics:[4,2,2],rewards:[4,2,2]},
+  merch:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],items:[4,2,2],photos:[4,2,2]}
+};
+const gstyle=(mod,k)=>{ const g=(GRID[mod.key]||{})[k]||[4,2,2]; return "--s:"+g[0]+";--t:"+g[1]+";--m:"+g[2]; };
+const TH={date:"Date",location:"Province",area:"Province",viscosity:"Viscosity",items:"Items"};
+const STACK_WIDE=["location","product","program","mechanics","rewards","items"];
+const SEARCH_PH={price:"Search province, brand, product, viscosity or recorder",programs:"Search brand, province, program, rewards or recorder",merch:"Search brand, province, items or recorder"};
+/* ---------- Navigation ---------- */
+const PANELS=["summary","price","programs","merch"];
+function go(name){
+  PANELS.forEach(p=>{ document.querySelector(`[data-panel="${p}"]`).hidden=p!==name; });
+  document.querySelectorAll(".side nav [data-go]").forEach(b=>b.setAttribute("aria-selected",b.dataset.go===name?"true":"false"));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
+
+/* ---------- Settings: paste your Google Apps Script web app URL ---------- */
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbykX9Pu7NVBnNipW-Q03uaKOV6zZ5n2Ng8PNA6Gb9lCatW-suK5MXA7Q50XUtSfuqyp/exec";
+const configured=/^https:\/\/script\.google\.com\//.test(SCRIPT_URL);
+const CODE_KEY="cdb-access-code";
+const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
+const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
+
+async function api(action,data,signal){
+  if(!configured) throw Object.assign(new Error("This page isn’t connected yet. The organizer needs to add the web app link."),{code:"not_configured"});
+  let r;
+  try{ r=await fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,code:getCode(),...(data||{})}),signal}); }
+  catch(e){ if(e&&e.name==="AbortError") throw Object.assign(new Error("Stopped."),{code:"cancelled"}); throw Object.assign(new Error("Couldn’t reach the database. Check the internet connection and try again."),{code:"network"}); }
+  let j; try{ j=await r.json(); }catch(e){ throw Object.assign(new Error("The database sent an unexpected reply. Check that the web app is deployed with access set to “Anyone”."),{code:"bad_reply"}); }
+  if(!j.ok) throw Object.assign(new Error(j.error||"The request wasn’t accepted."),{code:j.code||"error"});
+  return j;
+}
+
+/* ---------- Storage ---------- */
+let backend=null; let resolveReady; const ready=new Promise(r=>resolveReady=r);
+const loaders=[];
+let photoReadable=null, maxImages=4, resolvePhotoReady; const photoReadyP=new Promise(r=>resolvePhotoReady=r);
+function setLive(on,text){ document.querySelectorAll(".live").forEach(l=>{ l.classList.toggle("on",on); l.querySelector("span:last-child").textContent=text; }); }
+async function initBackend(){
+  if(!configured){
+    $("storeFoot").textContent="Not connected"; setLive(false,"Not connected"); photoReadable=false; resolvePhotoReady();
+    overlay({kind:"err",title:"Not connected yet",text:"This page isn’t connected to the Google Sheet yet. Paste the Apps Script web app URL into SCRIPT_URL in index.html."});
+    return;
+  }
+  setLive(false,"Connecting");
+  while(true){
+    if(!getCode()){ const c=await askCode(""); setCode(c); }
+    try{
+      const j=await api("ping");
+      backend={kind:"google",sheetUrl:j.sheetUrl||""}; photoReadable=!!j.readEnabled; resolvePhotoReady();
+      if(j.sheetUrl){ const a=$("sheetLink"); a.href=j.sheetUrl; a.hidden=false; }
+      $("storeFoot").textContent="Saved to Google Sheets"; setLive(true,"Connected");
+      closeOverlay(); resolveReady(); await refreshAll(); return;
+    }catch(e){
+      if(e.code==="bad_code"){ setCode(""); setCode(await askCode("That access code isn’t right. Check it with the organizer.")); continue; }
+      setLive(false,"Offline");
+      await new Promise(res=>overlay({kind:"err",title:"Couldn’t connect",text:e.message,actions:[{label:"Try again",primary:1,onClick:()=>{ closeOverlay(); res(); }}]}));
+    }
+  }
+}
+function askCode(msg){
+  return new Promise(res=>{
+    const inp=el("input",{type:"password",class:"inp",autocomplete:"off","aria-label":"Access code",placeholder:"Access code",style:"margin-top:14px;text-align:center"});
+    const go=()=>{ const v=inp.value.trim(); if(!v){ inp.focus(); return; } closeOverlay(); res(v); };
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter") go(); });
+    overlay({kind:"warn",title:"Enter the access code",text:msg||"Ask the organizer for the team’s access code. You only need to enter it once on this device.",node:inp,actions:[{label:"Continue",primary:1,onClick:go}]});
+    setTimeout(()=>inp.focus(),50);
+  });
+}
+let refreshing=false;
+async function refreshAll(){
+  if(refreshing||!backend) return; refreshing=true;
+  try{ await Promise.all(loaders.map(f=>f())); }catch(e){ if(e.code!=="cancelled") toast(e.message); }
+  finally{ refreshing=false; }
+}
+setInterval(()=>{ if(!document.hidden&&ov.hidden) refreshAll(); },60000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&ov.hidden) refreshAll(); });
+
+function makeStore(mod,onChange){
+  const load=async()=>{ const j=await api("list",{sheet:mod.key}); onChange((j.rows||[]).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))); };
+  loaders.push(load);
+  const s={
+    add:async r=>{ const rows=Array.isArray(r)?r:[r]; await api("add",{sheet:mod.key,rows}); load().catch(()=>{}); },
+    update:async(id,p)=>{ await api("update",{sheet:mod.key,id,data:p}); load().catch(()=>{}); },
+    remove:async id=>{ await api("delete",{sheet:mod.key,id}); load().catch(()=>{}); }
+  };
+  return {get:async()=>{ if(!configured) throw new Error("This page isn’t connected yet."); await ready; return s; }, reload:load};
+}
+
+/* ---------- Photos (Google Drive) ---------- */
+const blobToB64=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(b); });
+const MAX_PHOTOS=6;
+const photoSrc=p=>p&&p.id?"https://drive.google.com/thumbnail?id="+encodeURIComponent(p.id)+"&sz=w1200":(p&&p.data)||"";
+const blobToDataURL=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(b); });
+async function storePhoto(blob){
+  await ready;
+  const small=await toJpeg(blob,1600,0.82);
+  const j=await api("upload",{data:await blobToB64(small),mime:"image/jpeg",folder:"Merchandising Photos"});
+  return {id:j.id};
+}
+async function dropPhotos(list){
+  const ids=(list||[]).map(p=>p&&p.id).filter(Boolean); if(!ids.length) return;
+  try{ await api("trash",{ids}); }catch(e){}
+}
+function openLightbox(list,start){
+  let i=start||0; const img=el("img",{alt:""});
+  const show=()=>{ img.src=photoSrc(list[i]); img.alt="Photo "+(i+1)+" of "+list.length; };
+  const close=()=>{ box.remove(); document.removeEventListener("keydown",key); };
+  const step=d=>{ i=(i+d+list.length)%list.length; show(); };
+  const key=e=>{ if(e.key==="Escape") close(); if(e.key==="ArrowRight") step(1); if(e.key==="ArrowLeft") step(-1); };
+  const box=el("div",{class:"lightbox",role:"dialog","aria-label":"Photo viewer",onclick:e=>{ if(e.target===box) close(); }},img,
+    el("button",{class:"lbx","aria-label":"Close",text:"×",onclick:close}));
+  if(list.length>1) box.append(el("button",{class:"lbn prev","aria-label":"Previous photo",text:"‹",onclick:()=>step(-1)}),el("button",{class:"lbn next","aria-label":"Next photo",text:"›",onclick:()=>step(1)}));
+  document.addEventListener("keydown",key); document.body.append(box); show(); box.querySelector(".lbx").focus();
+}
+function thumbsCell(list){
+  const w=el("div",{class:"tthumbs"}); (list||[]).slice(0,3).forEach((p,i)=>w.append(el("button",{type:"button","aria-label":"View photo "+(i+1),onclick:()=>openLightbox(list,i)},el("img",{src:photoSrc(p),alt:"",loading:"lazy"}))));
+  if((list||[]).length>3) w.append(el("button",{type:"button",class:"more",text:"+"+(list.length-3),"aria-label":"View all photos",onclick:()=>openLightbox(list,3)}));
+  return w;
+}
+function photoField(uid){
+  let items=[]; // {saved:{id|data}} or {blob,url}
+  const box=el("div",{class:"phbox"});
+  const cam=el("input",{class:"vh",type:"file",accept:"image/*",capture:"environment",id:uid+"-cam"});
+  const gal=el("input",{class:"vh",type:"file",accept:"image/*",multiple:"",id:uid+"-gal"});
+  const add=el("div",{class:"phadd"},el("label",{class:"btn",for:uid+"-cam",text:"Take a photo"}),el("label",{class:"btn",for:uid+"-gal",text:"Upload image"}),cam,gal);
+  function render(){
+    box.textContent="";
+    items.forEach((it,i)=>{ const src=it.url||photoSrc(it.saved); box.append(el("div",{class:"thumb"},el("img",{src,alt:"Photo "+(i+1)}),el("button",{type:"button","aria-label":"Remove photo "+(i+1),text:"×",onclick:()=>{ if(it.url) URL.revokeObjectURL(it.url); items.splice(i,1); render(); }}))); });
+    add.hidden=items.length>=MAX_PHOTOS; box.append(add);
+  }
+  async function addFiles(files){
+    for(const f of files){
+      if(!f.type.startsWith("image/")&&!/\.(heic|heif)$/i.test(f.name)) continue;
+      if(items.length>=MAX_PHOTOS){ toast("Up to "+MAX_PHOTOS+" photos per record"); break; }
+      const blob=await toJpeg(f,1800,0.85); items.push({blob,url:URL.createObjectURL(blob)});
+    }
+    render();
+  }
+  cam.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
+  gal.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
+  render();
+  let original=[];
+  return {node:el("div",{},box),
+    set(list){ items.forEach(it=>it.url&&URL.revokeObjectURL(it.url)); original=(list||[]).slice(); items=original.map(p=>({saved:p})); render(); },
+    async collect(){ const out=[]; for(const it of items){ out.push(it.saved?it.saved:await storePhoto(it.blob)); } return out; },
+    removed(){ const kept=new Set(items.filter(it=>it.saved).map(it=>photoSrc(it.saved))); return original.filter(p=>!kept.has(photoSrc(p))); },
+    focus(){}};
+}
+
+const allRecords={price:[],programs:[],merch:[]};
+function renderBrands(){
+  const set=new Set(COMMON_BRANDS); Object.values(allRecords).flat().forEach(r=>r.brand&&set.add(r.brand));
+  const dl=$("brandList"); dl.textContent="";
+  [...set].sort((a,b)=>a.localeCompare(b)).forEach(b=>dl.append(el("option",{value:b})));
+}
+
+async function toJpeg(file,max=2400,q=0.9){
+  try{
+    const url=URL.createObjectURL(file);
+    const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
+    const sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+    return await new Promise(res=>c.toBlob(b=>res(b||file),"image/jpeg",q));
+  }catch(e){ return file; }
+}
+
+function makeInput(f,val,cls){
+  let i;
+  if(f.type==="select"){ i=el("select",{class:cls||""}); f.opts.forEach(o=>i.append(el("option",{value:o,text:o||(f.opts===PROVINCES?"Select province…":"Select…")}))); i.value=val||""; }
+  else if(f.type==="long"){ i=el("textarea",{class:cls||""}); i.value=val||""; }
+  else{
+    i=el("input",{class:cls||"",type:f.type==="date"?"date":f.type==="money"?"number":"text"});
+    if(f.type==="money"){ i.step="0.01"; i.min="0"; i.inputMode="decimal"; i.classList.add("num"); }
+    if(f.list) i.setAttribute("list",f.list);
+    i.value=val==null?"":val;
+  }
+  if(f.ph) i.placeholder=f.ph; else if(cls) i.placeholder=f.label;
+  return i;
+}
+function readVal(f,i){ const v=i.value; if(f.type==="money") return toNum(v); if(f.type==="date") return toDate(v); return clean(v); }
+function displayVal(f,v){ if(f.type==="money") return peso(v); return v==null?"":String(v); }
+
+/* ---------- Frozen header row + first 3 columns ---------- */
+function freezeCols(tbl,n=3){
+  const apply=()=>{
+    const head=tbl.tHead&&tbl.tHead.rows[0]; if(!head) return;
+    let left=0;
+    for(let c=0;c<n&&c<head.cells.length;c++){
+      const w=head.cells[c].getBoundingClientRect().width;
+      tbl.querySelectorAll("tr > :nth-child("+(c+1)+")").forEach(cell=>{ if(cell.colSpan>1) return; cell.style.left=left+"px"; cell.classList.add("frz"); cell.classList.toggle("frz-last",c===n-1); });
+      left+=w;
+    }
+  };
+  tbl._freeze=()=>requestAnimationFrame(apply);
+  if(window.ResizeObserver) new ResizeObserver(()=>apply()).observe(tbl);
+  tbl._freeze();
+}
+
+/* ---------- Loading / notice overlay ---------- */
+const ov=el("div",{class:"ov",hidden:"",role:"alertdialog","aria-modal":"true","aria-live":"assertive"});
+document.body.append(ov);
+let ovPrevFocus=null;
+function overlay({kind,title,text,actions,node}){
+  if(ov.hidden) ovPrevFocus=document.activeElement;
+  ov.textContent="";
+  const icon=kind==="busy"?el("div",{class:"spin","aria-hidden":"true"}):el("div",{class:"ovic "+(kind||"ok"),"aria-hidden":"true",text:kind==="ok"||!kind?"✓":"!"});
+  const box=el("div",{class:"ovbox"},icon,el("h2",{text:title}),text?el("p",{text}):null,node||null);
+  if(actions&&actions.length) box.append(el("div",{class:"ovacts"},actions.map(a=>el("button",{class:"btn"+(a.primary?" primary":""),type:"button",text:a.label,onclick:a.onClick}))));
+  ov.append(box); ov.hidden=false; document.body.classList.add("noscroll");
+  const f=box.querySelector(".btn.primary")||box.querySelector(".btn"); if(f) f.focus();
+}
+function closeOverlay(){ ov.hidden=true; document.body.classList.remove("noscroll"); if(ovPrevFocus&&ovPrevFocus.focus) try{ ovPrevFocus.focus(); }catch(e){} }
+
+/* ---------- Build one module ---------- */
+function buildModule(mod){
+  const root=document.querySelector(`[data-panel="${mod.key}"]`);
+  const F=k=>mod.fields.find(f=>f.k===k);
+  let records=[]; let editingId=null; let photos=[]; let ctl=null;
+  const store=makeStore(mod,list=>{ records=list; allRecords[mod.key]=list; renderBrands(); renderSummary(); renderRecords(); updateCounts(); });
+
+  // Header + tabs
+  const live=el("div",{class:"live"},el("span",{class:"dot"}),el("span",{text:"Connecting"}));
+  const cnt=el("span",{class:"n",text:"0"});
+  const tabBtns={photo:el("button",{role:"tab","aria-selected":"true",text:"Capture photo"}),manual:el("button",{role:"tab","aria-selected":"false",text:"Manual entry"}),records:el("button",{role:"tab","aria-selected":"false"},"Records",cnt)};
+  const views={};
+  function tab(n){ for(const k in tabBtns){ tabBtns[k].setAttribute("aria-selected",k===n?"true":"false"); views[k].hidden=k!==n; } }
+  Object.keys(tabBtns).forEach(k=>tabBtns[k].onclick=()=>tab(k));
+  root.append(el("header",{class:"pagehead"},el("h1",{text:mod.title}),live),el("p",{class:"sub",text:mod.sub}),el("div",{class:"tabs",role:"tablist"},Object.values(tabBtns)));
+  function updateCounts(){
+    cnt.textContent=records.length;
+    document.querySelector(`[data-count="${mod.key}"]`).textContent=records.length;
+  }
+
+  /* --- Photo view --- */
+  const batchInputs={};
+  const batchBox=el("div",{class:"fgrid batch"});
+  mod.batch.forEach(k=>{ const f=F(k); const i=makeInput(f,f.type==="date"?today():""); batchInputs[k]=i; batchBox.append(el("label",{class:"field",style:gstyle(mod,k)},el("span",{text:f.label}),i)); });
+  const camIn=el("input",{class:"vh",type:"file",accept:"image/*",capture:"environment",id:mod.key+"-cam"});
+  const galIn=el("input",{class:"vh",type:"file",accept:"image/*",multiple:"",id:mod.key+"-gal"});
+  const thumbs=el("div",{class:"thumbs"});
+  const readBtn=el("button",{class:"btn primary",text:"Read prices again",hidden:""});
+  const stopBtn=el("button",{class:"btn ghost",text:"Stop",hidden:""});
+  const pStatus=el("div",{class:"status",role:"status"});
+  const camSvg='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.3-2h7l1.3 2h1.7A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="4"/></svg>';
+  const shootMain=el("label",{class:"shoot-main",for:mod.key+"-cam"}); shootMain.innerHTML=camSvg; shootMain.append(el("div",{},el("b",{text:"Take a photo"}),el("small",{text:"Opens the camera on your phone"})));
+  const galTile=el("label",{class:"shoot-main alt",for:mod.key+"-gal"}); galTile.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>'; galTile.append(el("div",{},el("b",{text:"Choose from gallery"}),el("small",{text:"Use photos already on your device"})));
+  const capCard=el("div",{class:"card"},
+    el("h2",{text:mod.photoTitle}),el("p",{class:"hint",text:mod.photoHint}),batchBox,
+    el("div",{class:"shoot"},shootMain,galTile,camIn,galIn),
+    thumbs,el("div",{class:"row",style:"margin-top:14px"},readBtn,stopBtn),pStatus);
+  const review=el("div",{class:"erows "+mod.layout});
+  const saveRev=el("button",{class:"btn primary",text:"Save"});
+  const revCard=el("div",{class:"card",hidden:""},el("h2",{text:"Check before saving"}),el("p",{class:"hint",text:"Correct anything misread. Leave a field blank if it isn’t shown."}),review,
+    el("div",{class:"row",style:"margin-top:14px"},
+      el("button",{class:"btn",text:"Add a row",onclick:()=>{ addReviewRow({brand:lastBrand()}); updSave(); }}),el("span",{class:"spacer"}),
+      el("button",{class:"btn ghost",text:"Discard",onclick:()=>{ review.textContent=""; revCard.hidden=true; }}),saveRev));
+  views.photo=el("div",{},capCard,revCard);
+
+  photoReadyP.then(()=>{ if(photoReadable===false&&configured){ pStatus.className="status err"; pStatus.textContent="Automatic price reading isn’t switched on for this database. Use Manual entry, or ask the organizer to add the reading key."; } updRead(); });
+  let pricePhotos=[];
+  const updRead=()=>{ readBtn.hidden=!photos.some(p=>!p.read)||photoReadable===false||!!ctl; };
+  function renderThumbs(){ thumbs.textContent=""; photos.forEach((p,i)=>{ const b=el("button",{type:"button","aria-label":"Remove photo "+(i+1),text:"×",onclick:()=>{ URL.revokeObjectURL(p.url); photos.splice(i,1); renderThumbs(); updRead(); }}); thumbs.append(el("div",{class:"thumb"+(p.read?" done":"")},el("img",{src:p.url,alt:"Photo "+(i+1)}),b)); }); }
+  async function addFiles(files){
+    for(const f of files){
+      if(!f.type.startsWith("image/")&&!/\.(heic|heif)$/i.test(f.name)) continue;
+      if(photos.filter(p=>!p.read).length>=maxImages){ toast("Up to "+maxImages+" photos per reading"); break; }
+      const blob=await toJpeg(f); photos.push({blob,url:URL.createObjectURL(blob)});
+    }
+    renderThumbs(); updRead();
+    if(mod.key==="price"||mod.photo!==false){ await photoReadyP; if(photoReadable!==false&&photos.some(p=>!p.read)) readNew(); }
+  }
+  camIn.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
+  galIn.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
+  stopBtn.onclick=()=>ctl&&ctl.abort();
+  readBtn.onclick=()=>readNew();
+  async function readNew(){
+    if(ctl) return;
+    await ready; await photoReadyP;
+    if(!photoReadable){ pStatus.className="status err"; pStatus.textContent="Automatic price reading isn’t switched on. Use Manual entry."; return; }
+    const batch=photos.filter(p=>!p.read); if(!batch.length) return;
+    ctl=new AbortController(); updRead(); pStatus.className="status"; pStatus.textContent="";
+    const myCtl=ctl;
+    overlay({kind:"busy",title:"Reading the prices…",text:"Reading the price list in your photo"+(batch.length>1?"s":"")+" and saving the photo to Google Drive. This can take up to a minute.",actions:[{label:"Stop",onClick:()=>myCtl.abort()}]});
+    try{
+      const imgs=[]; for(const p of batch) imgs.push(await blobToB64(await toJpeg(p.blob,2000,0.85)));
+      const res=await api("read",{images:imgs},myCtl.signal);
+      (res.photos||[]).forEach(id=>pricePhotos.push({id}));
+      const out=res.rows;
+      const rows=(Array.isArray(out)?out:[]).filter(o=>o&&typeof o==="object").map(mod.fromAI).filter(mod.keepRow);
+      batch.forEach(p=>p.read=true); renderThumbs();
+      if(!rows.length){
+        overlay({kind:"err",title:"No prices found",text:"Nothing could be read from this photo. Retake it closer and straighter, or use Manual entry.",actions:[{label:"OK",primary:1,onClick:closeOverlay}]});
+        return;
+      }
+      const added=renderReview(rows,true);
+      overlay({kind:"warn",title:rows.length+" price"+(rows.length>1?"s":"")+" read",text:"Please check each price against the photo before saving. Correct anything misread"+(added>rows.length?" — there are now "+added+" rows to review.":"."),actions:[{label:"Check prices",primary:1,onClick:()=>{ closeOverlay(); revCard.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); const f=review.querySelector(".erow input"); if(f) setTimeout(()=>f.focus({preventScroll:true}),300); }}]});
+    }catch(e){
+      if(e&&e.code==="cancelled"){ closeOverlay(); pStatus.className="status"; pStatus.textContent="Reading stopped. Tap “Read prices again” to retry."; return; }
+      const msg=(e&&e.message)||"Couldn’t read the photo. Try again, or use Manual entry.";
+      const retry=e&&!["bad_code","not_configured"].includes(e.code);
+      overlay({kind:"err",title:"Reading failed",text:msg,actions:retry?[{label:"Close",onClick:closeOverlay},{label:"Try again",primary:1,onClick:()=>{ closeOverlay(); readNew(); }}]:[{label:"OK",primary:1,onClick:closeOverlay}]});
+    }finally{ ctl=null; updRead(); }
+  }
+
+  const rowFields=mod.fields.filter(f=>!mod.batch.includes(f.k));
+  function lastBrand(){ const rs=review.querySelectorAll(".erow"); const last=rs[rs.length-1]; const i=last&&last.querySelector('[data-k="brand"]'); return i?i.value:""; }
+  function addReviewRow(r){
+    const row=el("div",{class:"erow"}); if(mod.reviewCols) row.style.gridTemplateColumns=mod.reviewCols;
+    rowFields.forEach(f=>{
+      const i=makeInput(f,r[f.k],"inp"); i.dataset.k=f.k; i.setAttribute("aria-label",f.label);
+      if(mod.layout==="cards") row.append(el("label",{class:f.wide?"wide":""},f.label,i));
+      else { const w=el("div",{class:f.wide?"wide":""},i); row.append(w); }
+    });
+    row.append(el("button",{type:"button",class:"x","aria-label":"Remove row",text:"×",onclick:()=>{ row.remove(); updSave(); }}));
+    review.append(row);
+  }
+  function renderReview(rows,append){
+    if(append&&review.querySelector(".erow")){ rows.forEach(addReviewRow); revCard.hidden=false; updSave(); return review.querySelectorAll(".erow").length; }
+    review.textContent="";
+    if(mod.layout==="rows"){ const h=el("div",{class:"ehead"}); h.style.gridTemplateColumns=mod.reviewCols; rowFields.forEach(f=>h.append(el("span",{text:f.label+(f.type==="money"?" (₱)":"")}))); h.append(el("span")); review.append(h); }
+    rows.forEach(addReviewRow); revCard.hidden=false; updSave();
+    return review.querySelectorAll(".erow").length;
+  }
+  function updSave(){ const n=review.querySelectorAll(".erow").length; saveRev.textContent="Save "+n+" row"+(n===1?"":"s"); saveRev.disabled=!n; }
+  saveRev.onclick=async()=>{
+    const b={}; mod.batch.forEach(k=>b[k]=readVal(F(k),batchInputs[k]));
+    if(!b.date) b.date=today();
+    const missB=mod.batch.map(F).filter(f=>f.req&&!b[f.k]).map(f=>f.label);
+    if(missB.length){ toast("Fill in: "+missB.join(", ")); batchInputs[mod.batch.find(k=>!b[k]&&F(k).req)].focus(); return; }
+    const rows=[...review.querySelectorAll(".erow")].map(row=>{ const r={...b}; rowFields.forEach(f=>r[f.k]=readVal(f,row.querySelector(`[data-k="${f.k}"]`))); return r; }).filter(mod.keepRow);
+    if(!rows.length){ toast("Fill in at least one row"); return; }
+    saveRev.disabled=true;
+    const n=rows.length, word=n+" price"+(n>1?"s":"");
+    overlay({kind:"busy",title:"Saving the prices…",text:"Saving "+word+" to your Price Survey records. Please keep this page open."});
+    let saved=0;
+    try{
+      const s=await store.get(); const now=Date.now();
+      await s.add(rows.map((r,i)=>({...r,source:"photo",createdAt:now+i,photos:pricePhotos.slice()}))); saved=rows.length; pricePhotos=[];
+      saveRecorder(b);
+      review.textContent=""; revCard.hidden=true;
+      photos.forEach(p=>URL.revokeObjectURL(p.url)); photos=[]; renderThumbs(); updRead(); pStatus.className="status"; pStatus.textContent="";
+      overlay({kind:"ok",title:word+" saved",text:"They’re now in the Price Survey sheet, the records and the Summary.",actions:[{label:"View records",onClick:()=>{ closeOverlay(); tab("records"); }},{label:"Done",primary:1,onClick:closeOverlay}]});
+    }catch(e){
+      if(saved){ [...review.querySelectorAll(".erow")].slice(0,saved).forEach(r=>r.remove()); }
+      overlay({kind:"err",title:"Saving failed",text:(saved?saved+" of "+n+" prices were saved. ":"")+"The rest are still on the page. Check your connection and try again.",actions:[{label:"OK",primary:1,onClick:closeOverlay}]});
+    }
+    finally{ updSave(); }
+  };
+
+  /* --- Manual view --- */
+  const mInputs={};
+  const mGrid=el("div",{class:"fgrid"});
+  mod.fields.forEach(f=>{
+    if(f.type==="photos"){ const w=photoField(mod.key+"-"+f.k); mInputs[f.k]=w; mGrid.append(el("div",{class:"field",style:gstyle(mod,f.k)},el("span",{text:f.label+" (optional, up to "+MAX_PHOTOS+")"}),w.node)); return; }
+    const i=makeInput(f,f.type==="date"&&f.k==="date"?today():""); mInputs[f.k]=i; const lab=el("label",{class:"field",style:gstyle(mod,f.k)},el("span",{text:f.label+(f.type==="money"?" (₱)":"")}),i); mGrid.append(lab); });
+  const mTitle=el("h2",{text:mod.manualTitle});
+  const mSubmit=el("button",{class:"btn primary",type:"submit",text:"Save record"});
+  const mCancel=el("button",{class:"btn ghost",type:"button",text:"Cancel edit",hidden:""});
+  const mStatus=el("div",{class:"status",role:"status"});
+  const form=el("form",{novalidate:"",autocomplete:"off"},mGrid,el("div",{class:"row",style:"margin-top:16px"},mSubmit,mCancel),mStatus);
+  views.manual=el("div",{hidden:""},el("div",{class:"card"},mTitle,el("p",{class:"hint",text:mod.manualHint}),form));
+  const firstFree=mod.fields.find(f=>!mod.keep.includes(f.k));
+  function clearEntry(){ mod.fields.forEach(f=>{ if(mod.keep.includes(f.k)) return; if(f.type==="photos") mInputs[f.k].set([]); else mInputs[f.k].value=""; }); }
+  function startEdit(r){
+    editingId=r.id; tab("manual"); mTitle.textContent="Edit record";
+    mod.fields.forEach(f=>{ if(f.type==="photos") mInputs[f.k].set(r[f.k]); else setVal(f,mInputs[f.k],r[f.k]); });
+    mSubmit.textContent="Update record"; mCancel.hidden=false; mStatus.textContent=""; mInputs[firstFree.k].focus();
+  }
+  function endEdit(){ editingId=null; mTitle.textContent=mod.manualTitle; mSubmit.textContent="Save record"; mCancel.hidden=true; clearEntry(); fillRec(true); }
+  function fillRec(force){ const p=getRecorder(); REC_KEYS.forEach(k=>{ if(p[k]&&(force||!editingId)){ if(mInputs[k]) mInputs[k].value=p[k]; if(batchInputs[k]) batchInputs[k].value=p[k]; } }); }
+  recorderFillers.push(()=>fillRec(false)); fillRec(true);
+  mCancel.onclick=()=>{ endEdit(); tab("records"); };
+  form.addEventListener("submit",async ev=>{
+    ev.preventDefault(); mStatus.className="status";
+    const rec={}; mod.fields.forEach(f=>{ if(f.type!=="photos") rec[f.k]=readVal(f,mInputs[f.k]); });
+    const missing=mod.fields.filter(f=>f.req&&!rec[f.k]).map(f=>f.label);
+    const err=missing.length?"Fill in: "+missing.join(", ")+".":mod.validate(rec);
+    if(err){ mStatus.className="status err"; mStatus.textContent=err; return; }
+    mSubmit.disabled=true;
+    let dropped=[];
+    try{
+      const pf=mod.fields.filter(f=>f.type==="photos");
+      if(pf.length) mStatus.textContent="Saving photos…";
+      for(const f of pf){ rec[f.k]=await mInputs[f.k].collect(); dropped=dropped.concat(editingId?mInputs[f.k].removed():[]); }
+      const s=await store.get();
+      if(editingId){ await s.update(editingId,rec); dropPhotos(dropped); toast("Record updated"); endEdit(); tab("records"); }
+      else{ await s.add({...rec,source:"manual",createdAt:Date.now()}); saveRecorder(rec); mStatus.textContent="Saved: "+[rec.brand,rec.product||rec.program||rec.items,rec.packsize].filter(Boolean).join(" "); clearEntry(); mInputs[firstFree.k].focus(); }
+    }catch(e){ mStatus.className="status err"; mStatus.textContent="Couldn’t save the record. Check your connection and try again."; }
+    finally{ mSubmit.disabled=false; }
+  });
+
+  /* --- Records view --- */
+  const q=el("input",{type:"search",class:"search",placeholder:SEARCH_PH[mod.key]||"Search","aria-label":"Search records"});
+  const dateSel=el("select",{class:"filter","aria-label":"Filter by date recorded"});
+  const csvBtn=el("button",{class:"btn primary",text:"Download CSV",hidden:""});
+  csvBtn.hidden=false;
+  const thead=el("tr",{},mod.fields.filter(f=>!f.rec).map(f=>el("th",{class:f.type==="money"?"num":"",text:TH[f.k]||f.label})),el("th",{text:"Recorded By"}),el("th",{},el("span",{class:"vh",text:"Actions"})));
+  const tbody=el("tbody");
+  const recTable=el("table",{class:"dtable"},el("thead",{},thead),tbody); freezeCols(recTable);
+  views.records=el("div",{hidden:""},el("div",{class:"card"},
+    el("h2",{text:mod.title+" records"}),el("p",{class:"hint",text:"Search or filter by date. Download a CSV of what’s shown when you need a file."}),
+    el("div",{class:"tools"},q,dateSel),
+    el("div",{class:"rbar",style:"justify-content:flex-end"},el("div",{class:"acts"},csvBtn)),
+    el("div",{class:"twrap"},recTable)));
+  root.append(views.photo,views.manual,views.records);
+  if(mod.photo===false){ tabBtns.photo.remove(); views.photo.remove(); delete tabBtns.photo; delete views.photo; tab("manual"); }
+
+  const sortKey=mod.sortKey;
+  function filtered(){
+    const s=q.value.trim().toLowerCase(), d=dateSel.value;
+    return records.filter(r=>{
+      if(d&&r.date!==d) return false;
+      if(s&&!mod.fields.filter(f=>f.type!=="money"&&f.type!=="date"&&f.type!=="photos").map(f=>r[f.k]||"").join(" ").toLowerCase().includes(s)) return false;
+      return true;
+    }).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(a.brand||"").localeCompare(b.brand||"")||String(a[sortKey]||"").localeCompare(String(b[sortKey]||"")));
+  }
+  function renderRecords(){
+    const cur=dateSel.value; const dates=[...new Set(records.map(r=>r.date).filter(Boolean))].sort().reverse();
+    dateSel.textContent=""; dateSel.append(el("option",{value:"",text:"All dates"})); dates.forEach(d=>dateSel.append(el("option",{value:d,text:d}))); dateSel.value=dates.includes(cur)?cur:"";
+    tbody.textContent="";
+    const rows=filtered();
+    if(!rows.length){ tbody.append(el("tr",{},el("td",{class:"empty",colspan:String(mod.fields.length-1),text:records.length?"No records match these filters.":"No "+mod.noun+"s recorded yet. "+(mod.photo===false?"Use Manual entry to add one.":"Capture a photo or enter one manually.")}))); return; }
+    rows.forEach(r=>{
+      const tr=el("tr");
+      mod.fields.forEach(f=>{ if(f.rec) return; if(f.type==="photos"){ tr.append(el("td",{"data-label":f.label,class:"c-wide"},thumbsCell(r[f.k]))); return; } const wide=STACK_WIDE.includes(f.k); tr.append(el("td",{"data-label":f.label,class:(f.type==="money"?"num":(f.type==="long"?"clip":""))+(wide?" c-wide":""),text:displayVal(f,r[f.k])||"—"})); });
+      const del=el("button",{class:"btn sm ghost danger",text:"Delete"});
+      del.onclick=async()=>{
+        if(del.dataset.armed){ del.disabled=true; try{ await (await store.get()).remove(r.id); mod.fields.filter(f=>f.type==="photos").forEach(f=>dropPhotos(r[f.k])); toast("Record deleted"); }catch(e){ toast("Couldn’t delete. Try again."); del.disabled=false; } return; }
+        del.dataset.armed="1"; del.textContent="Confirm delete"; setTimeout(()=>{ if(del.isConnected){ delete del.dataset.armed; del.textContent="Delete"; } },3500);
+      };
+      tr.append(el("td",{"data-label":"Recorded By",class:"c-wide c-rec"},r.recName?el("b",{text:r.recName}):"—",(r.recPosition||r.recCompany)?el("small",{text:[r.recPosition,r.recCompany].filter(Boolean).join(", ")}):null));
+      tr.append(el("td",{class:"c-act"},el("button",{class:"btn sm ghost",text:"Edit",onclick:()=>startEdit(r)}),del));
+      tbody.append(tr);
+    });
+    recTable._freeze&&recTable._freeze();
+  }
+  [q,dateSel].forEach(i=>i.addEventListener(i===q?"input":"change",()=>renderRecords()));
+
+  const XF=mod.fields.filter(f=>f.type!=="photos");
+  const HEAD=XF.map(f=>f.label).concat(XF.length<mod.fields.length?["No. of Photos"]:[]);
+  const vals=r=>XF.map(f=>{ const v=r[f.k]; if(f.type==="money") return v==null?"":Number(v).toFixed(2); return v==null?"":String(v); }).concat(XF.length<mod.fields.length?[String(mod.fields.filter(f=>f.type==="photos").reduce((n,f)=>n+((r[f.k]||[]).length),0))]:[]);
+  const _tsv=(rows,h)=>{ const l=rows.map(r=>vals(r).map(v=>v.replace(/[\t\r\n]+/g," ")).join("\t")); if(h) l.unshift(HEAD.join("\t")); return l.join("\n"); };
+  const csv=rows=>{ const qq=v=>/[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; return [HEAD,...rows.map(vals)].map(a=>a.map(qq).join(",")).join("\r\n"); };
+  csvBtn.onclick=async()=>{
+    const rows=filtered(); if(!rows.length){ toast("No records to download"); return; }
+    const blob=new Blob(["\ufeff"+csv(rows)],{type:"text/csv;charset=utf-8"}); const a=el("a",{href:URL.createObjectURL(blob),download:(mod.file||"price-survey-")+(dateSel.value||today())+".csv"});
+    document.body.append(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  };
+  renderRecords();
+}
+
+/* ---------- Summary ---------- */
+const sumRoot=document.querySelector('[data-panel="summary"]');
+const sPeriod=el("select",{class:"filter","aria-label":"Period"});
+[["","All dates"],["30","Last 30 days"],["90","Last 90 days"],["year","This year"]].forEach(([v,t])=>sPeriod.append(el("option",{value:v,text:t})));
+const sBrand=el("select",{class:"filter","aria-label":"Brand"});
+const sBody=el("div");
+sumRoot.append(
+  el("header",{class:"pagehead"},el("h1",{text:"Summary"}),el("div",{class:"live"},el("span",{class:"dot"}),el("span",{text:"Connecting"}))),
+  el("p",{class:"sub",text:"Overview of competitor prices and programs recorded from field visits."}),
+  el("div",{class:"tools",style:"margin:0 0 14px"},sPeriod,sBrand),sBody);
+[sPeriod,sBrand].forEach(x=>x.addEventListener("change",renderSummary));
+function inPeriod(d){
+  const v=sPeriod.value; if(!v) return true; if(!d) return false;
+  if(v==="year") return d.slice(0,4)===today().slice(0,4);
+  const c=new Date(); c.setDate(c.getDate()-Number(v)); c.setMinutes(c.getMinutes()-c.getTimezoneOffset());
+  return d>=c.toISOString().slice(0,10);
+}
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const uniq=a=>[...new Set(a.filter(Boolean))];
+const fmtDate=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-PH",{month:"short",day:"numeric",year:"numeric"}):"—";
+function table(heads,rows,numCols,scroll){
+  const t=el("table",{class:"dtable"},el("thead",{},el("tr",{},heads.map((h,i)=>el("th",{class:numCols.includes(i)?"num":"",text:h})))),
+    el("tbody",{},rows.length?rows.map(r=>el("tr",{},r.map((c,i)=>{ const td=el("td",{class:numCols.includes(i)?"num":"","data-label":heads[i]}); if(c instanceof Node) td.append(c); else td.textContent=c==null?"":c; return td; }))):el("tr",{},el("td",{class:"empty",colspan:String(heads.length),text:"No records for this selection."}))));
+  freezeCols(t);
+  return el("div",{class:"twrap"},t);
+}
+function renderSummary(){
+  const allP=allRecords.price, allG=allRecords.programs;
+  const cur=sBrand.value; const allM=allRecords.merch; const brands=uniq([...allP,...allG,...allM].map(r=>r.brand)).sort((a,b)=>a.localeCompare(b));
+  sBrand.textContent=""; sBrand.append(el("option",{value:"",text:"All brands"})); brands.forEach(b=>sBrand.append(el("option",{value:b,text:b}))); sBrand.value=brands.includes(cur)?cur:"";
+  const bf=r=>!sBrand.value||r.brand===sBrand.value;
+  const P=allP.filter(r=>inPeriod(r.date)&&bf(r)), G=allG.filter(r=>inPeriod(r.date)&&bf(r));
+  sBody.textContent="";
+
+  // Price survey card
+  const last=a=>a.map(r=>r.date).filter(Boolean).sort().pop();
+  const visc=r=>{ if(r.viscosity) return r.viscosity; const m=String(r.product||"").toUpperCase().match(/\b\d{1,2}W-?\d{2,3}\b|\bSAE ?\d{2,3}\b|\bNLGI ?\d\b/); return m?m[0].replace(/^(\d{1,2}W)(\d)/,"$1-$2").replace(/^(SAE|NLGI)(\d)/,"$1 $2"):""; };
+  const groups={};
+  P.forEach(r=>{ const v=visc(r)||"—"; const k=(r.brand||"—")+"|"+v+"|"+(r.packsize||"—"); (groups[k]=groups[k]||{brand:r.brand||"—",visc:v,pack:r.packsize||"—",sku:new Set(),t:[],s:[],m:[]}); const g=groups[k]; g.sku.add((r.product||"").toLowerCase()); if(r.trade!=null) g.t.push(r.trade); if(r.srp!=null) g.s.push(r.srp); if(r.trade!=null&&r.srp) g.m.push((r.srp-r.trade)/r.srp*100); });
+  const grows=Object.values(groups).sort((a,b)=>a.brand.localeCompare(b.brand)||a.visc.localeCompare(b.visc,undefined,{numeric:true})||a.pack.localeCompare(b.pack,undefined,{numeric:true})).map(g=>{ const m=avg(g.m); return [g.brand,g.visc,g.pack,peso(avg(g.t)),peso(avg(g.s)),m==null?"":el("span",{class:"pos",text:m.toFixed(1)+"%"})]; });
+  const latest={};
+  P.forEach(r=>{ const k=[r.brand,r.product,visc(r),r.packsize].join("|").toLowerCase(); const c=latest[k]; if(!c||(r.date||"")>(c.date||"")||((r.date||"")===(c.date||"")&&r.createdAt>c.createdAt)) latest[k]=r; });
+  const lrows=Object.values(latest).sort((a,b)=>(a.brand||"").localeCompare(b.brand||"")||(a.product||"").localeCompare(b.product||"")||(a.packsize||"").localeCompare(b.packsize||"",undefined,{numeric:true})).map(r=>[r.brand,r.product,visc(r),r.packsize,peso(r.trade),peso(r.srp),r.location||"",fmtDate(r.date)]);
+  sBody.append(el("div",{class:"card"},
+    el("h2",{text:"Price Survey"}),
+    el("div",{class:"stats"},
+      el("div",{class:"stat"},el("b",{text:String(P.length)}),el("span",{text:"Price records"})),
+      el("div",{class:"stat"},el("b",{text:String(uniq(P.map(r=>r.brand)).length)}),el("span",{text:"Brands surveyed"})),
+      el("div",{class:"stat"},el("b",{text:String(uniq(P.map(r=>(r.location||"").toLowerCase())).length)}),el("span",{text:"Provinces visited"})),
+      el("div",{class:"stat"},el("b",{text:fmtDate(last(P))}),el("span",{text:"Latest survey"}))),
+    el("h3",{text:"Prices by brand, viscosity and packsize"}),
+    table(["Brand","Viscosity","Packsize","Avg trade price","Avg SRP/RRP","Margin %"],grows,[3,4,5]),
+    el("p",{class:"hint",style:"margin-top:6px",text:"Margin is (SRP/RRP − trade price) ÷ SRP/RRP, for records that have both prices."}),
+    el("h3",{text:"Latest price per product"}),
+    table(["Brand","Product name","Viscosity","Packsize","Trade price","SRP/RRP","Province","Date"],lrows,[4,5],true)));
+
+  // Programs card
+  const byBrand={}; G.forEach(r=>{ const b=r.brand||"—"; byBrand[b]=(byBrand[b]||0)+1; });
+  const bmax=Math.max(1,...Object.values(byBrand));
+  const bars=el("div",{class:"bars"},Object.entries(byBrand).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([b,n])=>{ const i=el("i"); i.style.width=(n/bmax*100)+"%"; return el("div",{class:"bar"},el("span",{text:b}),el("span",{class:"track"},i),el("b",{text:String(n)})); }));
+  const prows=G.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.createdAt-a.createdAt).map(r=>[fmtDate(r.date),r.brand,r.area,r.program,r.mechanics,r.rewards]);
+  sBody.append(el("div",{class:"card"},
+    el("h2",{text:"Programs"}),
+    el("div",{class:"stats"},
+      el("div",{class:"stat"},el("b",{text:String(G.length)}),el("span",{text:"Programs recorded"})),
+      el("div",{class:"stat"},el("b",{text:String(uniq(G.map(r=>r.brand)).length)}),el("span",{text:"Brands with programs"})),
+      el("div",{class:"stat"},el("b",{text:String(uniq(G.map(r=>(r.area||"").toLowerCase())).length)}),el("span",{text:"Provinces covered"})),
+      el("div",{class:"stat"},el("b",{text:fmtDate(last(G))}),el("span",{text:"Latest program recorded"}))),
+    el("h3",{text:"Programs by brand"}),
+    G.length?bars:el("p",{class:"hint",style:"margin-top:8px",text:"No programs for this selection."}),
+    el("h3",{text:"Program list"}),
+    table(["Date","Brand","Province","Program name","Mechanics","Rewards"],prows,[],true)));
+
+  // Merchandising card
+  const M=allM.filter(r=>inPeriod(r.date)&&bf(r));
+  const barList=obj=>{ const mx=Math.max(1,...Object.values(obj)); return el("div",{class:"bars"},Object.entries(obj).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([k,n])=>{ const i=el("i"); i.style.width=(n/mx*100)+"%"; return el("div",{class:"bar"},el("span",{text:k}),el("span",{class:"track"},i),el("b",{text:String(n)})); })); };
+  const mBrand={}, mType={};
+  M.forEach(r=>{ const b=r.brand||"—"; mBrand[b]=(mBrand[b]||0)+1;
+    String(r.items||"").split(/,|;|\/| and /i).map(x=>x.trim()).filter(Boolean).forEach(x=>{ const k=x.charAt(0).toUpperCase()+x.slice(1).toLowerCase(); mType[k]=(mType[k]||0)+1; }); });
+  const mrows=M.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.createdAt-a.createdAt).map(r=>[fmtDate(r.date),r.brand,r.area,r.items,(r.photos&&r.photos.length)?thumbsCell(r.photos):""]);
+  const none=t=>el("p",{class:"hint",style:"margin-top:8px",text:t});
+  sBody.append(el("div",{class:"card"},
+    el("h2",{text:"Merchandising"}),
+    el("div",{class:"stats"},
+      el("div",{class:"stat"},el("b",{text:String(M.length)}),el("span",{text:"Merchandising records"})),
+      el("div",{class:"stat"},el("b",{text:String(uniq(M.map(r=>r.brand)).length)}),el("span",{text:"Brands with merchandising"})),
+      el("div",{class:"stat"},el("b",{text:String(uniq(M.map(r=>(r.area||"").toLowerCase())).length)}),el("span",{text:"Provinces covered"})),
+      el("div",{class:"stat"},el("b",{text:fmtDate(last(M))}),el("span",{text:"Latest record"}))),
+    el("h3",{text:"Merchandising by brand"}),
+    M.length?barList(mBrand):none("No merchandising for this selection."),
+    el("h3",{text:"Merchandising by item type"}),
+    M.length?barList(mType):none("No merchandising for this selection."),
+    el("h3",{text:"Merchandising list"}),
+    table(["Date","Brand","Province","Merchandising items","Photos"],mrows,[],true)));
+}
+renderSummary();
+
+buildModule(MODULES.price);
+buildModule(MODULES.programs);
+buildModule(MODULES.merch);
+initBackend();
+})();
+</script>
+</body>
+</html>
