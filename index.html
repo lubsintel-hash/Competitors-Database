@@ -350,6 +350,16 @@ h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1
   .side nav button svg{width:16px;height:16px}
   .bar{grid-template-columns:96px 1fr 28px}
 }
+/* iPhone: stop date fields and wide content from pushing the page sideways */
+.app{overflow-x:clip;max-width:100vw}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+.field,.fgrid > *{min-width:0}
+.erow .rl{display:none}
+@media (max-width:760px){ .erows.rows .erow .rl{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:3px} }
+.pbar{height:8px;border-radius:4px;background:var(--paper);border:1px solid var(--line);overflow:hidden;margin-top:8px}
+.pbar i{display:block;height:100%;width:0;background:var(--grad);transition:width .3s}
+@media (prefers-reduced-motion:reduce){.pbar i{transition:none}}
 /* Overlay */
 .ov{position:fixed;inset:0;z-index:70;background:rgba(6,10,20,.6);display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
 .ovbox{background:var(--card);color:var(--ink);border-radius:16px;padding:28px 24px 22px;width:min(400px,100%);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.3)}
@@ -408,6 +418,7 @@ body.noscroll{overflow:hidden}
       <section data-panel="price" hidden></section>
       <section data-panel="programs" hidden></section>
       <section data-panel="merch" hidden></section>
+      <p class="hint" style="text-align:center;margin-top:28px;font-size:12px" id="appVer"></p>
     </div>
   </main>
 </div>
@@ -444,7 +455,7 @@ const MODULES={
   price:{
     key:"price", title:"Price Survey", noun:"price", col:"survey/prices", localKey:"uli-price-survey-v1",
     sub:"Competitor pricelists captured on field visits.",
-    photoTitle:"Capture a price list", photoHint:"Take a clear, straight photo. For long lists, shoot one section at a time so the small print stays readable.",
+    photoTitle:"Capture a price list", photoHint:"Take a clear, straight, well-lit photo. For long lists, shoot one section at a time so the small print stays readable. Prices are read on your phone as soon as the photo is added.",
     photoBtn:"Read prices from photo", manualTitle:"Enter a price manually",
     manualHint:"Date, province, brand and your recorder details stay filled in after each save, so you can log a whole price list quickly.",
     layout:"rows", reviewCols:"1fr 1.7fr .9fr .7fr .9fr .9fr 38px",
@@ -564,7 +575,16 @@ const CODE_KEY="cdb-access-code";
 const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
 const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
 
+const APP_VERSION="v6 · Oct 29, 2026";
 async function api(action,data,signal){
+  const t=new AbortController(), limit=(action==="read"||action==="upload")?120000:45000;
+  let timedOut=false; const timer=setTimeout(()=>{ timedOut=true; t.abort(); },limit);
+  if(signal) signal.addEventListener("abort",()=>t.abort());
+  try{ return await apiCall(action,data,t.signal); }
+  catch(e){ if(timedOut) throw Object.assign(new Error("The database took too long to reply. Check the connection and try again."),{code:"timeout"}); throw e; }
+  finally{ clearTimeout(timer); }
+}
+async function apiCall(action,data,signal){
   if(!configured) throw Object.assign(new Error("This page isn’t connected yet. The organizer needs to add the web app link."),{code:"not_configured"});
   let r;
   try{ r=await fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,code:getCode(),...(data||{})}),signal}); }
@@ -628,6 +648,58 @@ function makeStore(mod,onChange){
     remove:async id=>{ await api("delete",{sheet:mod.key,id}); load().catch(()=>{}); }
   };
   return {get:async()=>{ if(!configured) throw new Error("This page isn’t connected yet."); await ready; return s; }, reload:load};
+}
+
+/* ---------- Price reading in the browser (Tesseract OCR, no API key) ---------- */
+const OCR_SRC="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+let ocrLib=null;
+function loadOCR(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(ocrLib) return ocrLib;
+  ocrLib=new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=OCR_SRC; sc.onload=()=>res(window.Tesseract); sc.onerror=()=>{ ocrLib=null; sc.remove(); rej(new Error("The price reader couldn’t load. Check the internet connection and try again.")); }; document.head.append(sc); });
+  return ocrLib;
+}
+async function prepForOCR(blob){
+  const url=URL.createObjectURL(blob);
+  const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
+  const long=Math.max(img.naturalWidth,img.naturalHeight), sc=Math.min(2.5,Math.max(1,2400/long));
+  const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
+  const g=c.getContext("2d"); g.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+  const d=g.getImageData(0,0,c.width,c.height), px=d.data;
+  for(let k=0;k<px.length;k+=4){ let y=0.299*px[k]+0.587*px[k+1]+0.114*px[k+2]; y=Math.max(0,Math.min(255,(y-128)*1.5+128)); px[k]=px[k+1]=px[k+2]=y; }
+  g.putImageData(d,0,0);
+  return c;
+}
+function parsePricelist(text,brands){
+  const lines=String(text||"").split(/\r?\n/).map(l=>l.replace(/[|_]+/g," ").replace(/\s+/g," ").trim()).filter(Boolean);
+  const all=text.toUpperCase();
+  const hasSrp=/\b(SRP|RRP|RETAIL|SUGGESTED)\b/.test(all), hasTrade=/\b(DEALER|DEALERS|TRADE|NET|WHOLESALE|DISTRIBUTOR|DP|WSP)\b/.test(all);
+  const findBrand=s=>{ const u=s.toUpperCase(); let best=""; brands.forEach(b=>{ if(new RegExp("(^|[^A-Z])"+b.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^A-Z]|$)").test(u)&&b.length>best.length) best=b; }); return best; };
+  let curBrand=findBrand(lines.slice(0,6).join(" "))||"", curVisc="", rows=[];
+  const viscRe=/\b(\d{1,2})\s?W\s?[-–]?\s?(\d{2,3})\b|\bSAE\s?(\d{2,3})\b|\bNLGI\s?#?\s?(\d)\b/i;
+  const packRe=/\b(\d+(?:[.,]\d+)?)\s?(L|LT|LTR|LTRS|LITERS?|LITRES?|ML|G|GMS?|KG|KGS)\b/i;
+  const normVisc=m=>m[1]?m[1]+"W-"+m[2]:m[3]?"SAE "+m[3]:"NLGI "+m[4];
+  const normPack=m=>{ let n=parseFloat(m[1].replace(",",".")), u=m[2].toUpperCase(); if(u==="ML") return (n>=100?String(+(n/1000).toFixed(2)):String(n))+(n>=100?"L":"ml"); if(/^L/.test(u)) return n+"L"; if(/^K/.test(u)) return n+"kg"; return n+"g"; };
+  for(const raw of lines){
+    if(/\b(TOTAL|SUBTOTAL|PAGE|TEL|TELEPHONE|EMAIL|ADDRESS|EFFECTIVE|VALID|PRICE ?LIST|PRICELIST|DATE)\b/i.test(raw)) continue;
+    let s=raw;
+    const b=findBrand(s); if(b) curBrand=b;
+    const vm=s.match(viscRe); const visc=vm?normVisc(vm):"";
+    if(vm) s=s.replace(vm[0]," ");
+    const pm=s.match(packRe); const pack=pm?normPack(pm):"";
+    if(pm) s=s.replace(pm[0]," ");
+    const nums=[...s.matchAll(/(?:₱|PHP|P)?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+\.\d{2}|\d{2,6})(?![\d%])/gi)].map(m=>({v:parseFloat(m[1].replace(/,/g,"")),i:m.index})).filter(x=>x.v>=20&&x.v<=200000);
+    if(!nums.length){ if(visc&&raw.length<40) curVisc=visc; continue; }
+    let name=s.slice(0,nums[0].i).replace(/(?:₱|PHP)\s*$/i,"");
+    if(b) name=name.replace(new RegExp(b.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i")," ");
+    name=name.replace(/[^A-Za-z0-9+\-./&' ]+/g," ").replace(/\s+/g," ").trim().replace(/^[-.\s]+|[-.\s]+$/g,"");
+    if(name.length<2&&!visc) continue;
+    const vals=nums.map(x=>x.v); let trade=null,srp=null;
+    if(vals.length>=2){ const pair=vals.slice(-2); trade=Math.min(...pair); srp=Math.max(...pair); }
+    else if(hasTrade&&!hasSrp) trade=vals[0]; else srp=vals[0];
+    rows.push({brand:curBrand,product:name,viscosity:visc||curVisc,packsize:pack,trade,srp});
+  }
+  return rows;
 }
 
 /* ---------- Photos (Google Drive) ---------- */
@@ -786,25 +858,30 @@ function buildModule(mod){
   const readBtn=el("button",{class:"btn primary",text:"Read prices again",hidden:""});
   const stopBtn=el("button",{class:"btn ghost",text:"Stop",hidden:""});
   const pStatus=el("div",{class:"status",role:"status"});
+  const pBar=el("div",{class:"pbar",hidden:""},el("i"));
   const camSvg='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.3-2h7l1.3 2h1.7A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="4"/></svg>';
   const shootMain=el("label",{class:"shoot-main",for:mod.key+"-cam"}); shootMain.innerHTML=camSvg; shootMain.append(el("div",{},el("b",{text:"Take a photo"}),el("small",{text:"Opens the camera on your phone"})));
   const galTile=el("label",{class:"shoot-main alt",for:mod.key+"-gal"}); galTile.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>'; galTile.append(el("div",{},el("b",{text:"Choose from gallery"}),el("small",{text:"Use photos already on your device"})));
   const capCard=el("div",{class:"card"},
     el("h2",{text:mod.photoTitle}),el("p",{class:"hint",text:mod.photoHint}),batchBox,
     el("div",{class:"shoot"},shootMain,galTile,camIn,galIn),
-    thumbs,el("div",{class:"row",style:"margin-top:14px"},readBtn,stopBtn),pStatus);
+    thumbs,el("div",{class:"row",style:"margin-top:14px"},readBtn,stopBtn),pStatus,pBar);
   const review=el("div",{class:"erows "+mod.layout});
   const saveRev=el("button",{class:"btn primary",text:"Save"});
-  const revCard=el("div",{class:"card",hidden:""},el("h2",{text:"Check before saving"}),el("p",{class:"hint",text:"Correct anything misread. Leave a field blank if it isn’t shown."}),review,
+  const revCard=el("div",{class:"card",hidden:""},el("h2",{text:"Check before saving"}),el("p",{class:"hint",text:"Correct anything misread, one row per product and packsize. Leave a field blank if it isn’t on the price list."}),review,
     el("div",{class:"row",style:"margin-top:14px"},
       el("button",{class:"btn",text:"Add a row",onclick:()=>{ addReviewRow({brand:lastBrand()}); updSave(); }}),el("span",{class:"spacer"}),
       el("button",{class:"btn ghost",text:"Discard",onclick:()=>{ review.textContent=""; revCard.hidden=true; }}),saveRev));
   views.photo=el("div",{},capCard,revCard);
 
-  photoReadyP.then(()=>{ if(photoReadable===false&&configured){ pStatus.className="status err"; pStatus.textContent="Automatic price reading isn’t switched on for this database. Use Manual entry, or ask the organizer to add the reading key."; } updRead(); });
-  let pricePhotos=[];
-  const updRead=()=>{ readBtn.hidden=!photos.some(p=>!p.read)||photoReadable===false||!!ctl; };
-  function renderThumbs(){ thumbs.textContent=""; photos.forEach((p,i)=>{ const b=el("button",{type:"button","aria-label":"Remove photo "+(i+1),text:"×",onclick:()=>{ URL.revokeObjectURL(p.url); photos.splice(i,1); renderThumbs(); updRead(); }}); thumbs.append(el("div",{class:"thumb"+(p.read?" done":"")},el("img",{src:p.url,alt:"Photo "+(i+1)}),b)); }); }
+  photoReadyP.then(()=>updRead());
+  async function uploadPricePhotos(){
+    const ids=[];
+    for(const p of photos){ if(!p.driveId){ const small=await toJpeg(p.blob,2000,0.85); const j=await api("upload",{data:await blobToB64(small),mime:"image/jpeg",folder:"Pricelist Photos"}); p.driveId=j.id; } ids.push({id:p.driveId}); }
+    return ids;
+  }
+  const updRead=()=>{ readBtn.hidden=!photos.some(p=>!p.read)||!!ctl; };
+  function renderThumbs(){ thumbs.textContent=""; photos.forEach((p,i)=>{ const b=el("button",{type:"button","aria-label":"Remove photo "+(i+1),text:"×",onclick:()=>{ URL.revokeObjectURL(p.url); photos.splice(i,1); renderThumbs(); updRead(); }}); thumbs.append(el("div",{class:"thumb"+(p.read?" done":"")},el("img",{src:p.url,alt:"Photo "+(i+1)+", tap to view larger",style:"cursor:zoom-in",onclick:()=>openLightbox(photos.map(x=>({data:x.url})),i)}),b)); }); }
   async function addFiles(files){
     for(const f of files){
       if(!f.type.startsWith("image/")&&!/\.(heic|heif)$/i.test(f.name)) continue;
@@ -812,7 +889,8 @@ function buildModule(mod){
       const blob=await toJpeg(f); photos.push({blob,url:URL.createObjectURL(blob)});
     }
     renderThumbs(); updRead();
-    if(mod.key==="price"||mod.photo!==false){ await photoReadyP; if(photoReadable!==false&&photos.some(p=>!p.read)) readNew(); }
+    if(mod.key==="price"&&photos.some(p=>!p.read)){ readNew(); return; }
+    updRead();
   }
   camIn.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
   galIn.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
@@ -820,31 +898,43 @@ function buildModule(mod){
   readBtn.onclick=()=>readNew();
   async function readNew(){
     if(ctl) return;
-    await ready; await photoReadyP;
-    if(!photoReadable){ pStatus.className="status err"; pStatus.textContent="Automatic price reading isn’t switched on. Use Manual entry."; return; }
     const batch=photos.filter(p=>!p.read); if(!batch.length) return;
-    ctl=new AbortController(); updRead(); pStatus.className="status"; pStatus.textContent="";
-    const myCtl=ctl;
-    overlay({kind:"busy",title:"Reading the prices…",text:"Reading the price list in your photo"+(batch.length>1?"s":"")+" and saving the photo to Google Drive. This can take up to a minute.",actions:[{label:"Stop",onClick:()=>myCtl.abort()}]});
+    let cancelled=false, worker=null, cur=0;
+    ctl={abort:()=>{ cancelled=true; if(worker) try{ worker.terminate(); }catch(e){} }};
+    updRead(); stopBtn.hidden=false; pBar.hidden=false;
+    const show=(t,pct)=>{ pStatus.className="status"; pStatus.textContent=t+(pct!=null?" "+Math.round(pct)+"%":""); pBar.firstChild.style.width=(pct||0)+"%"; };
+    const ensureRow=()=>{ if(!review.querySelector(".erow")) renderReview([{}]); };
     try{
-      const imgs=[]; for(const p of batch) imgs.push(await blobToB64(await toJpeg(p.blob,2000,0.85)));
-      const res=await api("read",{images:imgs},myCtl.signal);
-      (res.photos||[]).forEach(id=>pricePhotos.push({id}));
-      const out=res.rows;
-      const rows=(Array.isArray(out)?out:[]).filter(o=>o&&typeof o==="object").map(mod.fromAI).filter(mod.keepRow);
-      batch.forEach(p=>p.read=true); renderThumbs();
-      if(!rows.length){
-        overlay({kind:"err",title:"No prices found",text:"Nothing could be read from this photo. Retake it closer and straighter, or use Manual entry.",actions:[{label:"OK",primary:1,onClick:closeOverlay}]});
-        return;
+      show("Loading the price reader…",0);
+      const T=await loadOCR(); if(cancelled) throw {code:"cancelled"};
+      worker=await T.createWorker("eng",1,{logger:m=>{
+        if(cancelled) return;
+        if(m.status==="recognizing text") show("Reading prices"+(batch.length>1?" from photo "+(cur+1)+" of "+batch.length:"")+"…",m.progress*100);
+        else if(/load|initializ/i.test(m.status||"")) show("Preparing the price reader (first time takes longer)…",(m.progress||0)*100);
+      }});
+      await worker.setParameters({preserve_interword_spaces:"1"});
+      let text="";
+      for(cur=0;cur<batch.length;cur++){
+        if(cancelled) throw {code:"cancelled"};
+        const r=await worker.recognize(await prepForOCR(batch[cur].blob));
+        text+="\n"+(r&&r.data&&r.data.text||""); batch[cur].read=true;
       }
-      const added=renderReview(rows,true);
-      overlay({kind:"warn",title:rows.length+" price"+(rows.length>1?"s":"")+" read",text:"Please check each price against the photo before saving. Correct anything misread"+(added>rows.length?" — there are now "+added+" rows to review.":"."),actions:[{label:"Check prices",primary:1,onClick:()=>{ closeOverlay(); revCard.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); const f=review.querySelector(".erow input"); if(f) setTimeout(()=>f.focus({preventScroll:true}),300); }}]});
+      try{ await worker.terminate(); }catch(e){} worker=null;
+      renderThumbs();
+      const brands=[...new Set(COMMON_BRANDS.concat(Object.values(allRecords).flat().map(r=>r.brand).filter(Boolean)))];
+      const rows=parsePricelist(text,brands);
+      if(!rows.length){ ensureRow(); pStatus.className="status err"; pStatus.textContent="No prices could be read from this photo. Type them into the row below, or retake the photo closer, straighter and with more light."; return; }
+      [...review.querySelectorAll(".erow")].forEach(r=>{ if([...r.querySelectorAll("input,select")].every(i=>!i.value)) r.remove(); });
+      renderReview(rows,true);
+      pStatus.className="status"; pStatus.textContent="Read "+rows.length+" row"+(rows.length>1?"s":"")+". Check each price against the photo before saving. Tap the photo to view it larger.";
     }catch(e){
-      if(e&&e.code==="cancelled"){ closeOverlay(); pStatus.className="status"; pStatus.textContent="Reading stopped. Tap “Read prices again” to retry."; return; }
-      const msg=(e&&e.message)||"Couldn’t read the photo. Try again, or use Manual entry.";
-      const retry=e&&!["bad_code","not_configured"].includes(e.code);
-      overlay({kind:"err",title:"Reading failed",text:msg,actions:retry?[{label:"Close",onClick:closeOverlay},{label:"Try again",primary:1,onClick:()=>{ closeOverlay(); readNew(); }}]:[{label:"OK",primary:1,onClick:closeOverlay}]});
-    }finally{ ctl=null; updRead(); }
+      ensureRow();
+      if(cancelled||(e&&e.code==="cancelled")){ pStatus.className="status"; pStatus.textContent="Reading stopped. Type the prices below, or tap “Read prices again”."; }
+      else { pStatus.className="status err"; pStatus.textContent=(e&&e.message)||"Couldn’t read the photo. Type the prices below, or tap “Read prices again”."; }
+    }finally{
+      if(worker) try{ worker.terminate(); }catch(e){}
+      ctl=null; stopBtn.hidden=true; pBar.hidden=true; updRead();
+    }
   }
 
   const rowFields=mod.fields.filter(f=>!mod.batch.includes(f.k));
@@ -854,7 +944,7 @@ function buildModule(mod){
     rowFields.forEach(f=>{
       const i=makeInput(f,r[f.k],"inp"); i.dataset.k=f.k; i.setAttribute("aria-label",f.label);
       if(mod.layout==="cards") row.append(el("label",{class:f.wide?"wide":""},f.label,i));
-      else { const w=el("div",{class:f.wide?"wide":""},i); row.append(w); }
+      else { const w=el("div",{class:f.wide?"wide":""},el("span",{class:"rl",text:f.label+(f.type==="money"?" (₱)":"")}),i); row.append(w); }
     });
     row.append(el("button",{type:"button",class:"x","aria-label":"Remove row",text:"×",onclick:()=>{ row.remove(); updSave(); }}));
     review.append(row);
@@ -880,7 +970,8 @@ function buildModule(mod){
     let saved=0;
     try{
       const s=await store.get(); const now=Date.now();
-      await s.add(rows.map((r,i)=>({...r,source:"photo",createdAt:now+i,photos:pricePhotos.slice()}))); saved=rows.length; pricePhotos=[];
+      const pics=await uploadPricePhotos();
+      await s.add(rows.map((r,i)=>({...r,source:pics.length?"photo":"manual",createdAt:now+i,photos:pics}))); saved=rows.length;
       saveRecorder(b);
       review.textContent=""; revCard.hidden=true;
       photos.forEach(p=>URL.revokeObjectURL(p.url)); photos=[]; renderThumbs(); updRead(); pStatus.className="status"; pStatus.textContent="";
@@ -1094,6 +1185,7 @@ renderSummary();
 buildModule(MODULES.price);
 buildModule(MODULES.programs);
 buildModule(MODULES.merch);
+$("appVer").textContent="Competitors’ Database "+APP_VERSION;
 initBackend();
 })();
 </script>
