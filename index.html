@@ -360,6 +360,15 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .pbar{height:8px;border-radius:4px;background:var(--paper);border:1px solid var(--line);overflow:hidden;margin-top:8px}
 .pbar i{display:block;height:100%;width:0;background:var(--grad);transition:width .3s}
 @media (prefers-reduced-motion:reduce){.pbar i{transition:none}}
+.thumb .cropbtn{position:absolute;left:4px;bottom:4px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:15px;line-height:30px;padding:0}
+.cropwrap{margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--paper)}
+.cropwrap .hint{margin-bottom:10px}
+.stage{position:relative;display:block;width:fit-content;max-width:100%;margin:0 auto;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden;border-radius:6px}
+.stage .cropimg{display:block;max-width:100%;max-height:60vh;width:auto;height:auto}
+.selbox{position:absolute;border:2px solid #f7931e;box-shadow:0 0 0 9999px rgba(0,0,0,.45);cursor:move}
+.selbox .hdl{position:absolute;width:26px;height:26px;border-radius:50%;background:#f7931e;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.selbox .nw{left:-13px;top:-13px;cursor:nwse-resize}.selbox .ne{right:-13px;top:-13px;cursor:nesw-resize}
+.selbox .sw{left:-13px;bottom:-13px;cursor:nesw-resize}.selbox .se{right:-13px;bottom:-13px;cursor:nwse-resize}
 /* Overlay */
 .ov{position:fixed;inset:0;z-index:70;background:rgba(6,10,20,.6);display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
 .ovbox{background:var(--card);color:var(--ink);border-radius:16px;padding:28px 24px 22px;width:min(400px,100%);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.3)}
@@ -455,7 +464,7 @@ const MODULES={
   price:{
     key:"price", title:"Price Survey", noun:"price", col:"survey/prices", localKey:"uli-price-survey-v1",
     sub:"Competitor pricelists captured on field visits.",
-    photoTitle:"Capture a price list", photoHint:"Take a clear, straight, well-lit photo. For long lists, shoot one section at a time so the small print stays readable. Prices are read on your phone as soon as the photo is added.",
+    photoTitle:"Capture a price list", photoHint:"Take a clear, straight, well-lit photo. For long lists, shoot one section at a time so the small print stays readable. Prices are read as soon as the photo is added.",
     photoBtn:"Read prices from photo", manualTitle:"Enter a price manually",
     manualHint:"Date, province, brand and your recorder details stay filled in after each save, so you can log a whole price list quickly.",
     layout:"rows", reviewCols:"1fr 1.7fr .9fr .7fr .9fr .9fr 38px",
@@ -575,7 +584,7 @@ const CODE_KEY="cdb-access-code";
 const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
 const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
 
-const APP_VERSION="v6 · Oct 29, 2026";
+const APP_VERSION="v8 · Oct 30, 2026";
 async function api(action,data,signal){
   const t=new AbortController(), limit=(action==="read"||action==="upload")?120000:45000;
   let timedOut=false; const timer=setTimeout(()=>{ timedOut=true; t.abort(); },limit);
@@ -659,48 +668,127 @@ function loadOCR(){
   ocrLib=new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=OCR_SRC; sc.onload=()=>res(window.Tesseract); sc.onerror=()=>{ ocrLib=null; sc.remove(); rej(new Error("The price reader couldn’t load. Check the internet connection and try again.")); }; document.head.append(sc); });
   return ocrLib;
 }
-async function prepForOCR(blob){
-  const url=URL.createObjectURL(blob);
-  const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
-  const long=Math.max(img.naturalWidth,img.naturalHeight), sc=Math.min(2.5,Math.max(1,2400/long));
-  const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
-  const g=c.getContext("2d"); g.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
-  const d=g.getImageData(0,0,c.width,c.height), px=d.data;
-  for(let k=0;k<px.length;k+=4){ let y=0.299*px[k]+0.587*px[k+1]+0.114*px[k+2]; y=Math.max(0,Math.min(255,(y-128)*1.5+128)); px[k]=px[k+1]=px[k+2]=y; }
+function loadImg(blob){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(blob), i=new Image(); i.onload=()=>{ URL.revokeObjectURL(u); res(i); }; i.onerror=e=>{ URL.revokeObjectURL(u); rej(e); }; i.src=u; }); }
+/* Draws the photo rotated by rot (0/90/180/270) and cropped to crop {x,y,w,h in 0..1}, scaled so the long side is about `target` px. */
+function drawRotCrop(img,rot,crop,target,maxPx){
+  const r=((rot||0)%360+360)%360, sw=(r===90||r===270);
+  const W=sw?img.naturalHeight:img.naturalWidth, H=sw?img.naturalWidth:img.naturalHeight;
+  const c=crop||{x:0,y:0,w:1,h:1}, cw=Math.max(1,W*c.w), ch=Math.max(1,H*c.h);
+  const sc=Math.min(3,target/Math.max(cw,ch),Math.sqrt((maxPx||9e6)/(cw*ch)));
+  const cv=document.createElement("canvas"); cv.width=Math.max(1,Math.round(cw*sc)); cv.height=Math.max(1,Math.round(ch*sc));
+  const g=cv.getContext("2d"); g.imageSmoothingQuality="high"; g.fillStyle="#fff"; g.fillRect(0,0,cv.width,cv.height);
+  g.scale(sc,sc); g.translate(-c.x*W,-c.y*H); g.translate(W/2,H/2); g.rotate(r*Math.PI/180);
+  g.drawImage(img,-img.naturalWidth/2,-img.naturalHeight/2);
+  return cv;
+}
+async function prepForOCR(blob,rot,crop,target,mode){
+  const c=drawRotCrop(await loadImg(blob),rot,crop,target,9e6), g=c.getContext("2d");
+  const d=g.getImageData(0,0,c.width,c.height), px=d.data, n=px.length/4;
+  const G=new Float32Array(n); for(let k=0,j=0;k<px.length;k+=4,j++) G[j]=0.299*px[k]+0.587*px[k+1]+0.114*px[k+2];
+  let lo=0,hi=255;
+  if(mode==="stretch"){ const h=new Uint32Array(256); G.forEach(v=>h[v|0]++); let a=0; for(let i=0;i<256;i++){ a+=h[i]; if(a>n*0.01){ lo=i; break; } } a=0; for(let i=255;i>=0;i--){ a+=h[i]; if(a>n*0.01){ hi=i; break; } } }
+  const rng=Math.max(1,hi-lo);
+  for(let k=0,j=0;k<px.length;k+=4,j++){ let y=mode==="stretch"?(G[j]-lo)*255/rng:(G[j]-128)*1.5+128; y=y<0?0:y>255?255:y; px[k]=px[k+1]=px[k+2]=y; }
   g.putImageData(d,0,0);
   return c;
 }
+const GRADE_ONLY=new Set([10,15,22,32,46,68,80,85,90,100,140,150,220,250,320,460,680]);
+function fixOcrLine(s){
+  return s
+    .replace(/[‘’`´~*•·“”]/g," ")
+    .replace(/\b[iIl|!1][lL]\b/g,"1L")
+    .replace(/\b[aA][lL]\b/g,"4L")
+    .replace(/\b[oO0]\s?[.,]?\s?[8B]\s?[lL]\b/g,"0.8L")
+    .replace(/\b(\d{1,3})\s?[lL][tT][rR]?[sS]?\b/g,"$1L")
+    .replace(/(\d)\s?,\s(\d{3})\b/g,"$1,$2")
+    .replace(/\b(\d{1,3})\.(\d{3})\.(\d{2})\b/g,"$1,$2.$3")
+    .replace(/\b(\d+)\s\.\s?(\d{2})\b/g,"$1.$2")
+    .replace(/\b(\d+),(\d{2})\b(?![,\d])/g,"$1.$2")
+    .replace(/\b(\d+[.,]\d)[oO]\b/g,"$10").replace(/\b(\d+)[.,][oO]{2}\b/g,"$1.00");
+}
+function normVisc(a,b){
+  const fix=x=>x.replace(/[Oo]/g,"0").replace(/[IlL|!]/g,"1").replace(/[Jj]/g,"2").replace(/[Ss]/g,"5");
+  let p=fix(a), q=fix(b);
+  const okA=["0","5","10","15","20","25"], okB=["16","20","30","40","50","60"];
+  if(!okA.includes(p)&&p.length===2&&okA.includes("2"+p[1])) p="2"+p[1];
+  if(!okA.includes(p)&&p.length===2&&okA.includes("1"+p[1])) p="1"+p[1];
+  if(!okB.includes(q)&&q.length===2&&okB.includes(q[0]+"0")) q=q[0]+"0";
+  return p+"W-"+q;
+}
 function parsePricelist(text,brands){
-  const lines=String(text||"").split(/\r?\n/).map(l=>l.replace(/[|_]+/g," ").replace(/\s+/g," ").trim()).filter(Boolean);
-  const all=text.toUpperCase();
+  const lines=String(text||"").split(/\r?\n/).map(l=>fixOcrLine(l.replace(/[|_]+/g," ")).replace(/\s+/g," ").trim()).filter(Boolean);
+  const all=lines.join(" ").toUpperCase();
   const hasSrp=/\b(SRP|RRP|RETAIL|SUGGESTED)\b/.test(all), hasTrade=/\b(DEALER|DEALERS|TRADE|NET|WHOLESALE|DISTRIBUTOR|DP|WSP)\b/.test(all);
-  const findBrand=s=>{ const u=s.toUpperCase(); let best=""; brands.forEach(b=>{ if(new RegExp("(^|[^A-Z])"+b.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^A-Z]|$)").test(u)&&b.length>best.length) best=b; }); return best; };
+  const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const findBrand=s=>{ const u=s.toUpperCase(); let best=""; brands.forEach(b=>{ if(new RegExp("(^|[^A-Z])"+esc(b.toUpperCase())+"([^A-Z]|$)").test(u)&&b.length>best.length) best=b; }); return best; };
   let curBrand=findBrand(lines.slice(0,6).join(" "))||"", curVisc="", rows=[];
-  const viscRe=/\b(\d{1,2})\s?W\s?[-–]?\s?(\d{2,3})\b|\bSAE\s?(\d{2,3})\b|\bNLGI\s?#?\s?(\d)\b/i;
+  const viscRe=/\b([0-9OoJjIl]{1,2})\s?[wW]\s?[-–.]?\s?([0-9Oo]{2,3})\b|\bSAE\s?(\d{2,3})\b|\bNLGI\s?#?\s?(\d)\b|\bISO\s?(?:VG)?\s?(\d{2,3})\b/i;
   const packRe=/\b(\d+(?:[.,]\d+)?)\s?(L|LT|LTR|LTRS|LITERS?|LITRES?|ML|G|GMS?|KG|KGS)\b/i;
-  const normVisc=m=>m[1]?m[1]+"W-"+m[2]:m[3]?"SAE "+m[3]:"NLGI "+m[4];
-  const normPack=m=>{ let n=parseFloat(m[1].replace(",",".")), u=m[2].toUpperCase(); if(u==="ML") return (n>=100?String(+(n/1000).toFixed(2)):String(n))+(n>=100?"L":"ml"); if(/^L/.test(u)) return n+"L"; if(/^K/.test(u)) return n+"kg"; return n+"g"; };
+  const normPack=m=>{ let n=parseFloat(m[1].replace(",",".")), u=m[2].toUpperCase(); if(u==="ML") return n>=100?(+(n/1000).toFixed(2))+"L":n+"ml"; if(/^L/.test(u)) return n+"L"; if(/^K/.test(u)) return n+"kg"; return n+"g"; };
   for(const raw of lines){
     if(/\b(TOTAL|SUBTOTAL|PAGE|TEL|TELEPHONE|EMAIL|ADDRESS|EFFECTIVE|VALID|PRICE ?LIST|PRICELIST|DATE)\b/i.test(raw)) continue;
+    if(/\bPRODUCT\b/i.test(raw)&&/\b(SRP|PRICE|SIZE|GRADE)\b/i.test(raw)) continue;
     let s=raw;
     const b=findBrand(s); if(b) curBrand=b;
-    const vm=s.match(viscRe); const visc=vm?normVisc(vm):"";
-    if(vm) s=s.replace(vm[0]," ");
+    const vm=s.match(viscRe); let visc="";
+    if(vm){ visc=vm[1]?normVisc(vm[1],vm[2]):vm[3]?"SAE "+vm[3]:vm[4]?"NLGI "+vm[4]:"ISO VG "+vm[5]; s=s.replace(vm[0]," "); }
     const pm=s.match(packRe); const pack=pm?normPack(pm):"";
     if(pm) s=s.replace(pm[0]," ");
-    const nums=[...s.matchAll(/(?:₱|PHP|P)?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+\.\d{2}|\d{2,6})(?![\d%])/gi)].map(m=>({v:parseFloat(m[1].replace(/,/g,"")),i:m.index})).filter(x=>x.v>=20&&x.v<=200000);
+    let nums=[...s.matchAll(/(?:₱|PHP|P)?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+\.\d{1,2}|\d{2,7})(?![\d%])/gi)].map(m=>({raw:m[1],v:parseFloat(m[1].replace(/,/g,"")),i:m.index}));
+    let cut=nums.length?nums[0].i:-1, repaired=false;
+    if(!visc&&nums.length>=3&&!/[.,]/.test(nums[0].raw)&&GRADE_ONLY.has(nums[0].v)){ visc=String(nums[0].v); nums=nums.slice(1); }
+    const hasDec=nums.some(x=>/\.\d{2}$/.test(x.raw));
+    nums.forEach(x=>{ if(hasDec&&/^\d{5,7}$/.test(x.raw)){ x.v=x.v/100; repaired=true; } });
+    nums=nums.filter(x=>x.v>=20&&x.v<=200000);
     if(!nums.length){ if(visc&&raw.length<40) curVisc=visc; continue; }
-    let name=s.slice(0,nums[0].i).replace(/(?:₱|PHP)\s*$/i,"");
-    if(b) name=name.replace(new RegExp(b.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i")," ");
+    let name=s.slice(0,cut>=0?Math.min(cut,nums[0].i):nums[0].i).replace(/(?:₱|PHP)\s*$/i,"");
+    if(b&&name.toUpperCase().replace(b.toUpperCase(),"").trim().length>2) name=name.replace(new RegExp(esc(b),"i")," ");
     name=name.replace(/[^A-Za-z0-9+\-./&' ]+/g," ").replace(/\s+/g," ").trim().replace(/^[-.\s]+|[-.\s]+$/g,"");
     if(name.length<2&&!visc) continue;
     const vals=nums.map(x=>x.v); let trade=null,srp=null;
     if(vals.length>=2){ const pair=vals.slice(-2); trade=Math.min(...pair); srp=Math.max(...pair); }
     else if(hasTrade&&!hasSrp) trade=vals[0]; else srp=vals[0];
-    rows.push({brand:curBrand,product:name,viscosity:visc||curVisc,packsize:pack,trade,srp});
+    const row={brand:curBrand,product:name,viscosity:visc||curVisc,packsize:pack,trade,srp};
+    if(repaired) Object.defineProperty(row,"_repaired",{value:true,enumerable:false});
+    rows.push(row);
   }
   return rows;
 }
+// score a row's plausibility; used to pick the best reading per row
+function rowScore(r){
+  let s=0;
+  if(r.product&&r.product.length>=3) s+=1;
+  if(/^(\d{1,2}W-\d{2}|SAE \d+|NLGI \d|ISO VG \d+|\d{2,3})$/.test(r.viscosity||"")) s+=1;
+  if(/^\d+(\.\d+)?(L|ml|kg|g)$/.test(r.packsize||"")) s+=1;
+  if(r.trade!=null&&r.srp!=null){ const k=r.srp/r.trade; s+=(k>=1&&k<=1.8)?3:0.5; } else if(r.trade!=null||r.srp!=null) s+=1;
+  if(r._repaired) s-=1;
+  return s;
+}
+function mergeReadings(list){
+  // list: arrays of rows from different passes. Pick the best-scoring pass as the base, then improve each row from the others.
+  const key=r=>(r.product||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8)+"|"+(r.packsize||"");
+  const total=rows=>rows.reduce((a,r)=>a+rowScore(r),0);
+  const sorted=list.filter(x=>x&&x.length).sort((a,b)=>total(b)-total(a));
+  if(!sorted.length) return [];
+  const base=sorted[0].map(r=>({...r}));
+  sorted.slice(1).forEach(other=>{
+    const used=new Set();
+    base.forEach((r,i)=>{
+      let j=other.findIndex((o,k)=>!used.has(k)&&key(o)===key(r));
+      if(j<0) j=other.findIndex((o,k)=>!used.has(k)&&(o.product||"").toUpperCase().slice(0,5)===(r.product||"").toUpperCase().slice(0,5)&&(o.product||"").length>=3);
+      if(j<0) return; used.add(j);
+      const o=other[j];
+      if(rowScore(o)>rowScore(r)) base[i]={...o};
+      else ["product","viscosity","packsize","brand"].forEach(f=>{ if(!r[f]&&o[f]) base[i][f]=o[f]; });
+      const bp=(base[i].product||""), op=(o.product||"");
+      if(op.length>bp.length&&op.toUpperCase().startsWith(bp.toUpperCase())) base[i].product=op;
+    });
+    const sig=r=>(r.packsize||"")+"|"+r.trade+"|"+r.srp;
+    other.forEach((o,k)=>{ if(!used.has(k)&&rowScore(o)>=5&&!base.some(r=>key(r)===key(o)||sig(r)===sig(o))) base.push({...o}); });
+  });
+  return base;
+}
+
 
 /* ---------- Photos (Google Drive) ---------- */
 const blobToB64=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(b); });
@@ -859,13 +947,14 @@ function buildModule(mod){
   const stopBtn=el("button",{class:"btn ghost",text:"Stop",hidden:""});
   const pStatus=el("div",{class:"status",role:"status"});
   const pBar=el("div",{class:"pbar",hidden:""},el("i"));
+  const cropWrap=el("div",{class:"cropwrap",hidden:""});
   const camSvg='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.3-2h7l1.3 2h1.7A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="4"/></svg>';
   const shootMain=el("label",{class:"shoot-main",for:mod.key+"-cam"}); shootMain.innerHTML=camSvg; shootMain.append(el("div",{},el("b",{text:"Take a photo"}),el("small",{text:"Opens the camera on your phone"})));
   const galTile=el("label",{class:"shoot-main alt",for:mod.key+"-gal"}); galTile.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>'; galTile.append(el("div",{},el("b",{text:"Choose from gallery"}),el("small",{text:"Use photos already on your device"})));
   const capCard=el("div",{class:"card"},
     el("h2",{text:mod.photoTitle}),el("p",{class:"hint",text:mod.photoHint}),batchBox,
     el("div",{class:"shoot"},shootMain,galTile,camIn,galIn),
-    thumbs,el("div",{class:"row",style:"margin-top:14px"},readBtn,stopBtn),pStatus,pBar);
+    thumbs,cropWrap,el("div",{class:"row",style:"margin-top:14px"},readBtn,stopBtn),pStatus,pBar);
   const review=el("div",{class:"erows "+mod.layout});
   const saveRev=el("button",{class:"btn primary",text:"Save"});
   const revCard=el("div",{class:"card",hidden:""},el("h2",{text:"Check before saving"}),el("p",{class:"hint",text:"Correct anything misread, one row per product and packsize. Leave a field blank if it isn’t on the price list."}),review,
@@ -881,12 +970,16 @@ function buildModule(mod){
     return ids;
   }
   const updRead=()=>{ readBtn.hidden=!photos.some(p=>!p.read)||!!ctl; };
-  function renderThumbs(){ thumbs.textContent=""; photos.forEach((p,i)=>{ const b=el("button",{type:"button","aria-label":"Remove photo "+(i+1),text:"×",onclick:()=>{ URL.revokeObjectURL(p.url); photos.splice(i,1); renderThumbs(); updRead(); }}); thumbs.append(el("div",{class:"thumb"+(p.read?" done":"")},el("img",{src:p.url,alt:"Photo "+(i+1)+", tap to view larger",style:"cursor:zoom-in",onclick:()=>openLightbox(photos.map(x=>({data:x.url})),i)}),b)); }); }
+  function renderThumbs(){ thumbs.textContent=""; photos.forEach((p,i)=>{
+      const b=el("button",{type:"button","aria-label":"Remove photo "+(i+1),text:"×",onclick:()=>{ URL.revokeObjectURL(p.url); review.querySelectorAll('.erow[data-src="'+p.uid+'"]').forEach(x=>x.remove()); photos.splice(i,1); cropWrap.hidden=true; renderThumbs(); updRead(); updSave(); }});
+      const t=el("div",{class:"thumb"+(p.read?" done":"")},el("img",{src:p.url,alt:"Photo "+(i+1)+", tap to view larger",style:"cursor:zoom-in",onclick:()=>openLightbox(photos.map(x=>({data:x.url})),i)}),b);
+      if(mod.key==="price") t.append(el("button",{type:"button",class:"cropbtn","aria-label":"Select the price area of photo "+(i+1)+" and read it again",title:"Select price area",onclick:()=>openCrop(i)},el("span",{"aria-hidden":"true",text:"✂"})));
+      thumbs.append(t); }); }
   async function addFiles(files){
     for(const f of files){
       if(!f.type.startsWith("image/")&&!/\.(heic|heif)$/i.test(f.name)) continue;
       if(photos.filter(p=>!p.read).length>=maxImages){ toast("Up to "+maxImages+" photos per reading"); break; }
-      const blob=await toJpeg(f); photos.push({blob,url:URL.createObjectURL(blob)});
+      const blob=await toJpeg(f,mod.key==="price"?3200:2400,0.92); photos.push({blob,url:URL.createObjectURL(blob),uid:"ph"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),rot:0,crop:null});
     }
     renderThumbs(); updRead();
     if(mod.key==="price"&&photos.some(p=>!p.read)){ readNew(); return; }
@@ -896,42 +989,100 @@ function buildModule(mod){
   galIn.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
   stopBtn.onclick=()=>ctl&&ctl.abort();
   readBtn.onclick=()=>readNew();
+  function openCrop(idx){
+    const p=photos[idx]; if(!p||ctl) return;
+    let rot=p.rot||0, sel=p.crop?{...p.crop}:{x:0.04,y:0.04,w:0.92,h:0.92}, img=null, drag=null;
+    cropWrap.textContent=""; cropWrap.hidden=false;
+    const stage=el("div",{class:"stage"}), box=el("div",{class:"selbox"});
+    ["nw","ne","sw","se"].forEach(h=>box.append(el("span",{class:"hdl "+h,"data-h":h})));
+    const draw=async()=>{ img=img||await loadImg(p.blob); const cv=drawRotCrop(img,rot,null,1400,2.5e6); cv.className="cropimg"; stage.textContent=""; stage.append(cv,box); place(); };
+    const place=()=>{ box.style.left=sel.x*100+"%"; box.style.top=sel.y*100+"%"; box.style.width=sel.w*100+"%"; box.style.height=sel.h*100+"%"; };
+    const pt=e=>{ const r=stage.getBoundingClientRect(); return {x:Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),y:Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))}; };
+    const M=0.04;
+    stage.addEventListener("pointerdown",e=>{ const q=pt(e), h=e.target.dataset&&e.target.dataset.h;
+      if(h) drag={h}; else if(q.x>=sel.x&&q.x<=sel.x+sel.w&&q.y>=sel.y&&q.y<=sel.y+sel.h) drag={h:"move",ox:q.x-sel.x,oy:q.y-sel.y};
+      else { drag={h:"new",sx:q.x,sy:q.y}; sel={x:q.x,y:q.y,w:M,h:M}; place(); }
+      stage.setPointerCapture(e.pointerId); e.preventDefault(); });
+    stage.addEventListener("pointermove",e=>{ if(!drag) return; const q=pt(e), x2=sel.x+sel.w, y2=sel.y+sel.h;
+      if(drag.h==="move"){ sel.x=Math.min(1-sel.w,Math.max(0,q.x-drag.ox)); sel.y=Math.min(1-sel.h,Math.max(0,q.y-drag.oy)); }
+      else if(drag.h==="new"){ sel={x:Math.min(drag.sx,q.x),y:Math.min(drag.sy,q.y),w:Math.max(M,Math.abs(q.x-drag.sx)),h:Math.max(M,Math.abs(q.y-drag.sy))}; sel.w=Math.min(sel.w,1-sel.x); sel.h=Math.min(sel.h,1-sel.y); }
+      else { if(/w/.test(drag.h)){ sel.x=Math.min(q.x,x2-M); sel.w=x2-sel.x; } if(/e/.test(drag.h)) sel.w=Math.max(M,q.x-sel.x);
+             if(/n/.test(drag.h)){ sel.y=Math.min(q.y,y2-M); sel.h=y2-sel.y; } if(/s/.test(drag.h)) sel.h=Math.max(M,q.y-sel.y); }
+      place(); });
+    const end=()=>{ drag=null; }; stage.addEventListener("pointerup",end); stage.addEventListener("pointercancel",end);
+    const rotBtn=el("button",{type:"button",class:"btn",text:"↻ Rotate",onclick:()=>{ rot=(rot+90)%360; sel={x:0.04,y:0.04,w:0.92,h:0.92}; draw(); }});
+    const allBtn=el("button",{type:"button",class:"btn ghost",text:"Whole photo",onclick:()=>{ sel={x:0,y:0,w:1,h:1}; place(); }});
+    const cancel=el("button",{type:"button",class:"btn ghost",text:"Cancel",onclick:()=>{ cropWrap.hidden=true; cropWrap.textContent=""; }});
+    const go=el("button",{type:"button",class:"btn primary",text:"Read this area",onclick:()=>{ p.rot=rot; p.crop=(sel.w>0.98&&sel.h>0.98)?null:{...sel}; p.read=false; cropWrap.hidden=true; cropWrap.textContent=""; renderThumbs(); readNew(); }});
+    cropWrap.append(el("p",{class:"hint",text:"Drag the box over just the product names and prices. Drag the corners to resize, or drag outside the box to draw a new one. Use Rotate if the photo is sideways."}),stage,el("div",{class:"row",style:"margin-top:10px"},rotBtn,allBtn,el("span",{class:"spacer"}),cancel,go));
+    draw(); cropWrap.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+  }
   async function readNew(){
     if(ctl) return;
     const batch=photos.filter(p=>!p.read); if(!batch.length) return;
-    let cancelled=false, worker=null, cur=0;
-    ctl={abort:()=>{ cancelled=true; if(worker) try{ worker.terminate(); }catch(e){} }};
+    const PASSES=[["contrast",2400,"3"],["stretch",3000,"4"]];
+    const ac=new AbortController();
+    let cancelled=false, worker=null, ticker=null;
+    ctl={abort:()=>{ cancelled=true; ac.abort(); if(worker) try{ worker.terminate(); }catch(e){} }};
     updRead(); stopBtn.hidden=false; pBar.hidden=false;
-    const show=(t,pct)=>{ pStatus.className="status"; pStatus.textContent=t+(pct!=null?" "+Math.round(pct)+"%":""); pBar.firstChild.style.width=(pct||0)+"%"; };
+    const show=(t,pct)=>{ pStatus.className="status"; pStatus.textContent=t+(pct!=null?" "+Math.round(pct)+"%":""); if(pct!=null) pBar.firstChild.style.width=pct+"%"; };
+    const creep=(t)=>{ let v=5; show(t); pBar.firstChild.style.width=v+"%"; clearInterval(ticker); ticker=setInterval(()=>{ v=Math.min(92,v+(92-v)*0.08); pBar.firstChild.style.width=v+"%"; },400); };
     const ensureRow=()=>{ if(!review.querySelector(".erow")) renderReview([{}]); };
-    try{
-      show("Loading the price reader…",0);
+    const brands=[...new Set(COMMON_BRANDS.concat(Object.values(allRecords).flat().map(r=>r.brand).filter(Boolean)))];
+    const num=v=>{ if(v===null||v===undefined||v==="") return null; const n=parseFloat(String(v).replace(/[₱,\s]|php/gi,"")); return isFinite(n)?Math.round(n*100)/100:null; };
+    async function aiRead(p,label){
+      creep("Reading prices with Google Gemini"+label+"…");
+      const cv=drawRotCrop(await loadImg(p.blob),p.rot,p.crop,2000,4e6);
+      const blob=await new Promise(res=>cv.toBlob(res,"image/jpeg",0.88));
+      const r=await api("read",{images:[await blobToB64(blob)]},ac.signal);
+      if(r.photos&&r.photos[0]) p.driveId=r.photos[0];
+      return (r.rows||[]).filter(o=>o&&typeof o==="object").map(o=>({brand:String(o.brand||"").trim(),product:String(o.product_name||o.product||"").trim(),viscosity:String(o.viscosity||"").trim(),packsize:String(o.packsize||"").trim(),trade:num(o.trade_price),srp:num(o.srp)})).filter(r=>r.product||r.brand);
+    }
+    async function ocrRead(p,label){
+      show("Loading the backup reader…",0);
       const T=await loadOCR(); if(cancelled) throw {code:"cancelled"};
-      worker=await T.createWorker("eng",1,{logger:m=>{
+      if(!worker) worker=await T.createWorker("eng",1,{logger:m=>{
         if(cancelled) return;
-        if(m.status==="recognizing text") show("Reading prices"+(batch.length>1?" from photo "+(cur+1)+" of "+batch.length:"")+"…",m.progress*100);
-        else if(/load|initializ/i.test(m.status||"")) show("Preparing the price reader (first time takes longer)…",(m.progress||0)*100);
+        if(m.status==="recognizing text") show("Reading prices with the backup reader"+label+"…",((ocrStep+(m.progress||0))/PASSES.length)*100);
+        else if(/load|initializ/i.test(m.status||"")) show("Preparing the backup reader (first time takes longer)…",(m.progress||0)*100);
       }});
-      await worker.setParameters({preserve_interword_spaces:"1"});
-      let text="";
-      for(cur=0;cur<batch.length;cur++){
+      const results=[];
+      for(ocrStep=0;ocrStep<PASSES.length;ocrStep++){
         if(cancelled) throw {code:"cancelled"};
-        const r=await worker.recognize(await prepForOCR(batch[cur].blob));
-        text+="\n"+(r&&r.data&&r.data.text||""); batch[cur].read=true;
+        const [mode,target,psm]=PASSES[ocrStep];
+        await worker.setParameters({tessedit_pageseg_mode:psm,preserve_interword_spaces:"1"});
+        const r=await worker.recognize(await prepForOCR(p.blob,p.rot,p.crop,target,mode));
+        results.push(parsePricelist(r&&r.data&&r.data.text||"",brands));
       }
-      try{ await worker.terminate(); }catch(e){} worker=null;
-      renderThumbs();
-      const brands=[...new Set(COMMON_BRANDS.concat(Object.values(allRecords).flat().map(r=>r.brand).filter(Boolean)))];
-      const rows=parsePricelist(text,brands);
-      if(!rows.length){ ensureRow(); pStatus.className="status err"; pStatus.textContent="No prices could be read from this photo. Type them into the row below, or retake the photo closer, straighter and with more light."; return; }
-      [...review.querySelectorAll(".erow")].forEach(r=>{ if([...r.querySelectorAll("input,select")].every(i=>!i.value)) r.remove(); });
-      renderReview(rows,true);
-      pStatus.className="status"; pStatus.textContent="Read "+rows.length+" row"+(rows.length>1?"s":"")+". Check each price against the photo before saving. Tap the photo to view it larger.";
+      return mergeReadings(results);
+    }
+    let ocrStep=0, added=0, usedBackup=false, aiNote="";
+    try{
+      await photoReadyP;
+      for(let k=0;k<batch.length;k++){
+        const p=batch[k], label=batch.length>1?" (photo "+(k+1)+" of "+batch.length+")":"";
+        let rows=null;
+        if(photoReadable){
+          try{ rows=await aiRead(p,label); }
+          catch(e){ if(cancelled||(e&&e.code==="cancelled")) throw {code:"cancelled"}; aiNote=(e&&e.message)||""; rows=null; }
+          finally{ clearInterval(ticker); }
+        }
+        if(!rows||!rows.length){ if(photoReadable&&rows&&!rows.length&&!aiNote) aiNote="Gemini found no prices"; usedBackup=true; rows=await ocrRead(p,label); }
+        p.read=true;
+        review.querySelectorAll('.erow[data-src="'+p.uid+'"]').forEach(x=>x.remove());
+        [...review.querySelectorAll(".erow")].forEach(r=>{ if([...r.querySelectorAll("input,select")].every(i=>!i.value)) r.remove(); });
+        if(rows.length){ renderReview(rows.map(r=>({...r,_src:p.uid})),true); added+=rows.length; }
+      }
+      renderThumbs(); updSave();
+      const backupMsg=usedBackup&&photoReadable?" "+(aiNote?aiNote.replace(/\.$/,"")+", so the":"The")+" backup reader was used; check the rows closely.":"";
+      if(!added){ ensureRow(); pStatus.className="status err"; pStatus.textContent="No prices could be read. Tap ✂ on the photo to select just the price area, retake it closer and straighter with more light, or type the prices below."+backupMsg; return; }
+      pStatus.className="status"; pStatus.textContent="Read "+added+" row"+(added>1?"s":"")+". Check each one against the photo before saving."+backupMsg+" Not right? Tap ✂ on the photo to select just the price area and read it again.";
     }catch(e){
       ensureRow();
       if(cancelled||(e&&e.code==="cancelled")){ pStatus.className="status"; pStatus.textContent="Reading stopped. Type the prices below, or tap “Read prices again”."; }
       else { pStatus.className="status err"; pStatus.textContent=(e&&e.message)||"Couldn’t read the photo. Type the prices below, or tap “Read prices again”."; }
     }finally{
+      clearInterval(ticker);
       if(worker) try{ worker.terminate(); }catch(e){}
       ctl=null; stopBtn.hidden=true; pBar.hidden=true; updRead();
     }
@@ -940,7 +1091,7 @@ function buildModule(mod){
   const rowFields=mod.fields.filter(f=>!mod.batch.includes(f.k));
   function lastBrand(){ const rs=review.querySelectorAll(".erow"); const last=rs[rs.length-1]; const i=last&&last.querySelector('[data-k="brand"]'); return i?i.value:""; }
   function addReviewRow(r){
-    const row=el("div",{class:"erow"}); if(mod.reviewCols) row.style.gridTemplateColumns=mod.reviewCols;
+    const row=el("div",{class:"erow"}); if(mod.reviewCols) row.style.gridTemplateColumns=mod.reviewCols; if(r&&r._src) row.dataset.src=r._src;
     rowFields.forEach(f=>{
       const i=makeInput(f,r[f.k],"inp"); i.dataset.k=f.k; i.setAttribute("aria-label",f.label);
       if(mod.layout==="cards") row.append(el("label",{class:f.wide?"wide":""},f.label,i));
