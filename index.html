@@ -585,10 +585,10 @@ const CODE_KEY="cdb-access-code";
 const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
 const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
 
-const APP_VERSION="v12 · Nov 5, 2026";
+const APP_VERSION="v13 · Nov 5, 2026";
 let READER_NAME="Google Gemini";
 async function api(action,data,signal){
-  const t=new AbortController(), limit=(action==="read"||action==="upload")?120000:45000;
+  const t=new AbortController(), limit=action==="read"?240000:action==="upload"?120000:45000;
   let timedOut=false; const timer=setTimeout(()=>{ timedOut=true; t.abort(); },limit);
   if(signal) signal.addEventListener("abort",()=>t.abort());
   try{ return await apiCall(action,data,t.signal); }
@@ -915,14 +915,15 @@ function buildModule(mod){
     const brands=[...new Set(COMMON_BRANDS.concat(Object.values(allRecords).flat().map(r=>r.brand).filter(Boolean)))];
     const num=v=>{ if(v===null||v===undefined||v==="") return null; const n=parseFloat(String(v).replace(/[₱,\s]|php/gi,"")); return isFinite(n)?Math.round(n*100)/100:null; };
     async function aiRead(p,label){
-      creep("Reading prices with "+READER_NAME+label+"…");
+      creep("Reading prices"+label+"… (AI reader; this can take up to a minute)");
       const cv=drawRotCrop(await loadImg(p.blob),p.rot,p.crop,2000,4e6);
       const blob=await new Promise(res=>cv.toBlob(res,"image/jpeg",0.88));
       const r=await api("read",{images:[await blobToB64(blob)]},ac.signal);
       if(r.photos&&r.photos[0]) p.driveId=r.photos[0];
+      if(r.reader) usedReaders.add(r.reader);
       return (r.rows||[]).filter(o=>o&&typeof o==="object").map(o=>({brand:String(o.brand||"").trim(),product:String(o.product_name||o.product||"").trim(),viscosity:String(o.viscosity||"").trim(),packsize:String(o.packsize||"").trim(),trade:num(o.trade_price),srp:num(o.srp)})).filter(r=>r.product||r.brand);
     }
-    let added=0, failed=0, aiNote="";
+    let added=0, failed=0, aiNote=""; const usedReaders=new Set();
     try{
       await photoReadyP;
       if(!photoReadable){
@@ -942,7 +943,7 @@ function buildModule(mod){
         if(rows.length){ renderReview(rows.map(r=>({...r,_src:p.uid})),true); added+=rows.length; }
       }
       renderThumbs(); updSave();
-      const who="";
+      const who=usedReaders.size?" with "+[...usedReaders].join(" and "):"";
       if(failed){ ensureRow(); pStatus.className="status err"; pStatus.textContent=(added?"Read "+added+" row"+(added>1?"s":"")+". ":"")+aiNote.replace(/\.?$/,".")+" Tap “Read again”, or type the prices below."; return; }
       if(!added){ ensureRow(); pStatus.className="status err"; pStatus.textContent="No prices could be read"+who+". Tap ✂ on the photo to select just the price area, retake it closer and straighter with more light, or type the prices below."; return; }
       pStatus.className="status"; pStatus.textContent="Read "+added+" row"+(added>1?"s":"")+who+". Check each one against the photo before saving. Not right? Tap ✂ on the photo to select just the price area and read it again.";
