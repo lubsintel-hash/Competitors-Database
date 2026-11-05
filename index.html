@@ -528,7 +528,8 @@ If no price list is readable, reply with [].`,
       {k:"area",label:"Location (Province)",type:"select",opts:PROVINCES,span:2,req:1},
       {k:"program",label:"Program Name",span:6,req:1,wide:1,ph:"e.g. Helix Buy & Win"},
       {k:"mechanics",label:"Mechanics",type:"long",span:6,wide:1,req:1,ph:"e.g. Buy 1 case of Helix HX7 1L within the promo period"},
-      {k:"rewards",label:"Rewards",type:"long",span:6,wide:1,ph:"e.g. 2 free bottles of 1L per case"}
+      {k:"rewards",label:"Rewards",type:"long",span:6,wide:1,ph:"e.g. 2 free bottles of 1L per case"},
+      {k:"photos",label:"Photos",type:"photos",span:6,wide:1,folder:"Program Photos"}
     ],
     validate:r=>"",
     prompt:`You are reading photos of a competitor's lubricant / motor oil promotional material (flyer, poster, trade circular, price-off or loyalty program announcement), taken by a sales manager during a market visit in the Philippines.
@@ -561,7 +562,7 @@ function setVal(f,i,v){ v=v==null?"":v; if(f.type==="select"&&v&&![...i.options]
 /* Grid spans per field: [laptop of 4, tablet of 2, mobile of 2] */
 const GRID={
   price:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,2],location:[3,1,2],brand:[1,1,2],product:[3,1,2],viscosity:[1,1,1],packsize:[1,1,1],trade:[1,1,1],srp:[1,1,1]},
-  programs:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],program:[4,2,2],mechanics:[4,2,2],rewards:[4,2,2]},
+  programs:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],program:[4,2,2],mechanics:[4,2,2],rewards:[4,2,2],photos:[4,2,2]},
   merch:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],items:[4,2,2],photos:[4,2,2]}
 };
 const gstyle=(mod,k)=>{ const g=(GRID[mod.key]||{})[k]||[4,2,2]; return "--s:"+g[0]+";--t:"+g[1]+";--m:"+g[2]; };
@@ -584,7 +585,8 @@ const CODE_KEY="cdb-access-code";
 const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
 const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
 
-const APP_VERSION="v8 · Oct 30, 2026";
+const APP_VERSION="v11 · Oct 30, 2026";
+let READER_NAME="the AI reader";
 async function api(action,data,signal){
   const t=new AbortController(), limit=(action==="read"||action==="upload")?120000:45000;
   let timedOut=false; const timer=setTimeout(()=>{ timedOut=true; t.abort(); },limit);
@@ -619,7 +621,7 @@ async function initBackend(){
     if(!getCode()){ const c=await askCode(""); setCode(c); }
     try{
       const j=await api("ping");
-      backend={kind:"google",sheetUrl:j.sheetUrl||""}; photoReadable=!!j.readEnabled; resolvePhotoReady();
+      backend={kind:"google",sheetUrl:j.sheetUrl||""}; photoReadable=!!j.readEnabled; if(j.readerName) READER_NAME=j.readerName; resolvePhotoReady();
       if(j.sheetUrl){ const a=$("sheetLink"); a.href=j.sheetUrl; a.hidden=false; }
       $("storeFoot").textContent="Saved to Google Sheets"; setLive(true,"Connected");
       closeOverlay(); resolveReady(); await refreshAll(); return;
@@ -795,10 +797,10 @@ const blobToB64=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=(
 const MAX_PHOTOS=6;
 const photoSrc=p=>p&&p.id?"https://drive.google.com/thumbnail?id="+encodeURIComponent(p.id)+"&sz=w1200":(p&&p.data)||"";
 const blobToDataURL=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(b); });
-async function storePhoto(blob){
+async function storePhoto(blob,folder){
   await ready;
   const small=await toJpeg(blob,1600,0.82);
-  const j=await api("upload",{data:await blobToB64(small),mime:"image/jpeg",folder:"Merchandising Photos"});
+  const j=await api("upload",{data:await blobToB64(small),mime:"image/jpeg",folder:folder||"Merchandising Photos"});
   return {id:j.id};
 }
 async function dropPhotos(list){
@@ -821,7 +823,7 @@ function thumbsCell(list){
   if((list||[]).length>3) w.append(el("button",{type:"button",class:"more",text:"+"+(list.length-3),"aria-label":"View all photos",onclick:()=>openLightbox(list,3)}));
   return w;
 }
-function photoField(uid){
+function photoField(uid,folder){
   let items=[]; // {saved:{id|data}} or {blob,url}
   const box=el("div",{class:"phbox"});
   const cam=el("input",{class:"vh",type:"file",accept:"image/*",capture:"environment",id:uid+"-cam"});
@@ -846,7 +848,7 @@ function photoField(uid){
   let original=[];
   return {node:el("div",{},box),
     set(list){ items.forEach(it=>it.url&&URL.revokeObjectURL(it.url)); original=(list||[]).slice(); items=original.map(p=>({saved:p})); render(); },
-    async collect(){ const out=[]; for(const it of items){ out.push(it.saved?it.saved:await storePhoto(it.blob)); } return out; },
+    async collect(){ const out=[]; for(const it of items){ out.push(it.saved?it.saved:await storePhoto(it.blob,folder)); } return out; },
     removed(){ const kept=new Set(items.filter(it=>it.saved).map(it=>photoSrc(it.saved))); return original.filter(p=>!kept.has(photoSrc(p))); },
     focus(){}};
 }
@@ -943,7 +945,8 @@ function buildModule(mod){
   const camIn=el("input",{class:"vh",type:"file",accept:"image/*",capture:"environment",id:mod.key+"-cam"});
   const galIn=el("input",{class:"vh",type:"file",accept:"image/*",multiple:"",id:mod.key+"-gal"});
   const thumbs=el("div",{class:"thumbs"});
-  const readBtn=el("button",{class:"btn primary",text:"Read prices again",hidden:""});
+  const readBtn=el("button",{class:"btn primary",text:"Read again",hidden:""});
+  const backupBtn=el("button",{class:"btn",text:"Use backup reader",hidden:""});
   const stopBtn=el("button",{class:"btn ghost",text:"Stop",hidden:""});
   const pStatus=el("div",{class:"status",role:"status"});
   const pBar=el("div",{class:"pbar",hidden:""},el("i"));
@@ -954,7 +957,7 @@ function buildModule(mod){
   const capCard=el("div",{class:"card"},
     el("h2",{text:mod.photoTitle}),el("p",{class:"hint",text:mod.photoHint}),batchBox,
     el("div",{class:"shoot"},shootMain,galTile,camIn,galIn),
-    thumbs,cropWrap,el("div",{class:"row",style:"margin-top:14px"},readBtn,stopBtn),pStatus,pBar);
+    thumbs,cropWrap,el("div",{class:"row",style:"margin-top:14px"},readBtn,backupBtn,stopBtn),pStatus,pBar);
   const review=el("div",{class:"erows "+mod.layout});
   const saveRev=el("button",{class:"btn primary",text:"Save"});
   const revCard=el("div",{class:"card",hidden:""},el("h2",{text:"Check before saving"}),el("p",{class:"hint",text:"Correct anything misread, one row per product and packsize. Leave a field blank if it isn’t on the price list."}),review,
@@ -969,7 +972,7 @@ function buildModule(mod){
     for(const p of photos){ if(!p.driveId){ const small=await toJpeg(p.blob,2000,0.85); const j=await api("upload",{data:await blobToB64(small),mime:"image/jpeg",folder:"Pricelist Photos"}); p.driveId=j.id; } ids.push({id:p.driveId}); }
     return ids;
   }
-  const updRead=()=>{ readBtn.hidden=!photos.some(p=>!p.read)||!!ctl; };
+  const updRead=()=>{ const pending=photos.some(p=>!p.read)&&!ctl; readBtn.hidden=!pending||photoReadable===false; backupBtn.hidden=!pending; };
   function renderThumbs(){ thumbs.textContent=""; photos.forEach((p,i)=>{
       const b=el("button",{type:"button","aria-label":"Remove photo "+(i+1),text:"×",onclick:()=>{ URL.revokeObjectURL(p.url); review.querySelectorAll('.erow[data-src="'+p.uid+'"]').forEach(x=>x.remove()); photos.splice(i,1); cropWrap.hidden=true; renderThumbs(); updRead(); updSave(); }});
       const t=el("div",{class:"thumb"+(p.read?" done":"")},el("img",{src:p.url,alt:"Photo "+(i+1)+", tap to view larger",style:"cursor:zoom-in",onclick:()=>openLightbox(photos.map(x=>({data:x.url})),i)}),b);
@@ -989,6 +992,7 @@ function buildModule(mod){
   galIn.onchange=e=>{ addFiles([...e.target.files]); e.target.value=""; };
   stopBtn.onclick=()=>ctl&&ctl.abort();
   readBtn.onclick=()=>readNew();
+  backupBtn.onclick=()=>readNew(true);
   function openCrop(idx){
     const p=photos[idx]; if(!p||ctl) return;
     let rot=p.rot||0, sel=p.crop?{...p.crop}:{x:0.04,y:0.04,w:0.92,h:0.92}, img=null, drag=null;
@@ -1017,7 +1021,7 @@ function buildModule(mod){
     cropWrap.append(el("p",{class:"hint",text:"Drag the box over just the product names and prices. Drag the corners to resize, or drag outside the box to draw a new one. Use Rotate if the photo is sideways."}),stage,el("div",{class:"row",style:"margin-top:10px"},rotBtn,allBtn,el("span",{class:"spacer"}),cancel,go));
     draw(); cropWrap.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
   }
-  async function readNew(){
+  async function readNew(useBackup){
     if(ctl) return;
     const batch=photos.filter(p=>!p.read); if(!batch.length) return;
     const PASSES=[["contrast",2400,"3"],["stretch",3000,"4"]];
@@ -1031,7 +1035,7 @@ function buildModule(mod){
     const brands=[...new Set(COMMON_BRANDS.concat(Object.values(allRecords).flat().map(r=>r.brand).filter(Boolean)))];
     const num=v=>{ if(v===null||v===undefined||v==="") return null; const n=parseFloat(String(v).replace(/[₱,\s]|php/gi,"")); return isFinite(n)?Math.round(n*100)/100:null; };
     async function aiRead(p,label){
-      creep("Reading prices with Google Gemini"+label+"…");
+      creep("Reading prices with "+READER_NAME+label+"…");
       const cv=drawRotCrop(await loadImg(p.blob),p.rot,p.crop,2000,4e6);
       const blob=await new Promise(res=>cv.toBlob(res,"image/jpeg",0.88));
       const r=await api("read",{images:[await blobToB64(blob)]},ac.signal);
@@ -1056,27 +1060,33 @@ function buildModule(mod){
       }
       return mergeReadings(results);
     }
-    let ocrStep=0, added=0, usedBackup=false, aiNote="";
+    let ocrStep=0, added=0, failed=0, aiNote="";
     try{
       await photoReadyP;
+      if(!useBackup&&!photoReadable){
+        ensureRow(); pStatus.className="status err";
+        pStatus.textContent="The AI reader isn’t set up yet: the organizer needs to add GITHUB_TOKEN in Apps Script. Type the prices below, or tap “Use backup reader”.";
+        return;
+      }
       for(let k=0;k<batch.length;k++){
         const p=batch[k], label=batch.length>1?" (photo "+(k+1)+" of "+batch.length+")":"";
-        let rows=null;
-        if(photoReadable){
+        let rows;
+        if(useBackup) rows=await ocrRead(p,label);
+        else {
           try{ rows=await aiRead(p,label); }
-          catch(e){ if(cancelled||(e&&e.code==="cancelled")) throw {code:"cancelled"}; aiNote=(e&&e.message)||""; rows=null; }
+          catch(e){ if(cancelled||(e&&e.code==="cancelled")) throw {code:"cancelled"}; aiNote=(e&&e.message)||(READER_NAME+" couldn’t read the photo."); failed++; continue; }
           finally{ clearInterval(ticker); }
         }
-        if(!rows||!rows.length){ if(photoReadable&&rows&&!rows.length&&!aiNote) aiNote="Gemini found no prices"; usedBackup=true; rows=await ocrRead(p,label); }
         p.read=true;
         review.querySelectorAll('.erow[data-src="'+p.uid+'"]').forEach(x=>x.remove());
         [...review.querySelectorAll(".erow")].forEach(r=>{ if([...r.querySelectorAll("input,select")].every(i=>!i.value)) r.remove(); });
         if(rows.length){ renderReview(rows.map(r=>({...r,_src:p.uid})),true); added+=rows.length; }
       }
       renderThumbs(); updSave();
-      const backupMsg=usedBackup&&photoReadable?" "+(aiNote?aiNote.replace(/\.$/,"")+", so the":"The")+" backup reader was used; check the rows closely.":"";
-      if(!added){ ensureRow(); pStatus.className="status err"; pStatus.textContent="No prices could be read. Tap ✂ on the photo to select just the price area, retake it closer and straighter with more light, or type the prices below."+backupMsg; return; }
-      pStatus.className="status"; pStatus.textContent="Read "+added+" row"+(added>1?"s":"")+". Check each one against the photo before saving."+backupMsg+" Not right? Tap ✂ on the photo to select just the price area and read it again.";
+      const who=useBackup?" (backup reader; check the rows closely)":"";
+      if(failed){ ensureRow(); pStatus.className="status err"; pStatus.textContent=(added?"Read "+added+" row"+(added>1?"s":"")+". ":"")+aiNote.replace(/\.?$/,".")+" Tap “Read again”, use the backup reader, or type the prices below."; return; }
+      if(!added){ ensureRow(); pStatus.className="status err"; pStatus.textContent="No prices could be read"+who+". Tap ✂ on the photo to select just the price area, retake it closer and straighter with more light, or type the prices below."; return; }
+      pStatus.className="status"; pStatus.textContent="Read "+added+" row"+(added>1?"s":"")+who+". Check each one against the photo before saving. Not right? Tap ✂ on the photo to select just the price area and read it again.";
     }catch(e){
       ensureRow();
       if(cancelled||(e&&e.code==="cancelled")){ pStatus.className="status"; pStatus.textContent="Reading stopped. Type the prices below, or tap “Read prices again”."; }
@@ -1138,7 +1148,7 @@ function buildModule(mod){
   const mInputs={};
   const mGrid=el("div",{class:"fgrid"});
   mod.fields.forEach(f=>{
-    if(f.type==="photos"){ const w=photoField(mod.key+"-"+f.k); mInputs[f.k]=w; mGrid.append(el("div",{class:"field",style:gstyle(mod,f.k)},el("span",{text:f.label+" (optional, up to "+MAX_PHOTOS+")"}),w.node)); return; }
+    if(f.type==="photos"){ const w=photoField(mod.key+"-"+f.k,f.folder); mInputs[f.k]=w; mGrid.append(el("div",{class:"field",style:gstyle(mod,f.k)},el("span",{text:f.label+" (optional, up to "+MAX_PHOTOS+")"}),w.node)); return; }
     const i=makeInput(f,f.type==="date"&&f.k==="date"?today():""); mInputs[f.k]=i; const lab=el("label",{class:"field",style:gstyle(mod,f.k)},el("span",{text:f.label+(f.type==="money"?" (₱)":"")}),i); mGrid.append(lab); });
   const mTitle=el("h2",{text:mod.manualTitle});
   const mSubmit=el("button",{class:"btn primary",type:"submit",text:"Save record"});
@@ -1296,7 +1306,7 @@ function renderSummary(){
   const byBrand={}; G.forEach(r=>{ const b=r.brand||"—"; byBrand[b]=(byBrand[b]||0)+1; });
   const bmax=Math.max(1,...Object.values(byBrand));
   const bars=el("div",{class:"bars"},Object.entries(byBrand).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([b,n])=>{ const i=el("i"); i.style.width=(n/bmax*100)+"%"; return el("div",{class:"bar"},el("span",{text:b}),el("span",{class:"track"},i),el("b",{text:String(n)})); }));
-  const prows=G.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.createdAt-a.createdAt).map(r=>[fmtDate(r.date),r.brand,r.area,r.program,r.mechanics,r.rewards]);
+  const prows=G.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.createdAt-a.createdAt).map(r=>[fmtDate(r.date),r.brand,r.area,r.program,r.mechanics,r.rewards,(r.photos&&r.photos.length)?thumbsCell(r.photos):""]);
   sBody.append(el("div",{class:"card"},
     el("h2",{text:"Programs"}),
     el("div",{class:"stats"},
@@ -1307,7 +1317,7 @@ function renderSummary(){
     el("h3",{text:"Programs by brand"}),
     G.length?bars:el("p",{class:"hint",style:"margin-top:8px",text:"No programs for this selection."}),
     el("h3",{text:"Program list"}),
-    table(["Date","Brand","Province","Program name","Mechanics","Rewards"],prows,[],true)));
+    table(["Date","Brand","Province","Program name","Mechanics","Rewards","Photos"],prows,[],true)));
 
   // Merchandising card
   const M=allM.filter(r=>inPeriod(r.date)&&bf(r));
