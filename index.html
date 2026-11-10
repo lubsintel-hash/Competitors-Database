@@ -460,20 +460,57 @@ syncThemeLbl();
 
 /* ---------- Module definitions ---------- */
 const PROVINCES=["","Metro Manila (NCR)","Abra","Agusan del Norte","Agusan del Sur","Aklan","Albay","Antique","Apayao","Aurora","Basilan","Bataan","Batanes","Batangas","Benguet","Biliran","Bohol","Bukidnon","Bulacan","Cagayan","Camarines Norte","Camarines Sur","Camiguin","Capiz","Catanduanes","Cavite","Cebu","Cotabato","Davao de Oro","Davao del Norte","Davao del Sur","Davao Occidental","Davao Oriental","Dinagat Islands","Eastern Samar","Guimaras","Ifugao","Ilocos Norte","Ilocos Sur","Iloilo","Isabela","Kalinga","La Union","Laguna","Lanao del Norte","Lanao del Sur","Leyte","Maguindanao del Norte","Maguindanao del Sur","Marinduque","Masbate","Misamis Occidental","Misamis Oriental","Mountain Province","Negros Occidental","Negros Oriental","Northern Samar","Nueva Ecija","Nueva Vizcaya","Occidental Mindoro","Oriental Mindoro","Palawan","Pampanga","Pangasinan","Quezon","Quirino","Rizal","Romblon","Samar","Sarangani","Siquijor","Sorsogon","South Cotabato","Southern Leyte","Sultan Kudarat","Sulu","Surigao del Norte","Surigao del Sur","Tarlac","Tawi-Tawi","Zambales","Zamboanga del Norte","Zamboanga del Sur","Zamboanga Sibugay"];
+const MARKETS=["",["MCO","MCO – Motorcycle oil"],["PCMO","PCMO – 4-wheel / passenger car oil"],["Gear Oil / ATF","Gear oil / ATF"],["Industrial","Industrial oil"],["Grease","Grease"],["Non-Lubes","Non-lubes (brake fluid, coolant)"],["Others","Others"]];
+const SUBMARKETS={MCO:["",["Bikes","Bikes (manual / underbone, JASO MA)"],["Scooter","Scooter (automatic, JASO MB)"]],PCMO:["",["DEO","DEO – Diesel engine oil"],["GEO","GEO – Gasoline engine oil"]]};
+const ALL_SUBS=["",...SUBMARKETS.MCO.slice(1),...SUBMARKETS.PCMO.slice(1)];
+/* Turns any market text (from the AI reader or older records) into {market, sub}. */
+function normMarket(v,sub){
+  const s=String(v||"").trim().toUpperCase(), t=String(sub||"").trim().toUpperCase();
+  if(!s&&!t) return {market:"",sub:""};
+  const subOf=(m)=>{
+    if(m==="MCO"){ if(/SCOOT|AUTOMATIC|\bMB\b/.test(t)) return "Scooter"; if(/BIKE|MANUAL|UNDERBONE|\bMA2?\b/.test(t)) return "Bikes"; return ""; }
+    if(m==="PCMO"){ if(/DEO|DIESEL/.test(t)) return "DEO"; if(/GEO|GASOLINE|PETROL/.test(t)) return "GEO"; return ""; }
+    return "";
+  };
+  if(/^DEO|DIESEL/.test(s)) return {market:"PCMO",sub:"DEO"};
+  if(/^GEO|GASOLINE/.test(s)) return {market:"PCMO",sub:"GEO"};
+  if(/^MCO|MOTORCYCLE|SCOOTER|BIKE|\b[24]T\b/.test(s)){ const m="MCO"; return {market:m,sub:subOf(m)||(/SCOOT/.test(s)?"Scooter":/BIKE/.test(s)?"Bikes":"")}; }
+  if(/^PCMO|PASSENGER|4[- ]?WHEEL|CAR/.test(s)) return {market:"PCMO",sub:subOf("PCMO")};
+  if(/GEAR|ATF|TRANSMISSION/.test(s)) return {market:"Gear Oil / ATF",sub:""};
+  if(/INDUSTRIAL|HYDRAULIC|COMPRESSOR|TURBINE/.test(s)) return {market:"Industrial",sub:""};
+  if(/GREASE/.test(s)) return {market:"Grease",sub:""};
+  if(/NON|BRAKE|COOLANT/.test(s)) return {market:"Non-Lubes",sub:""};
+  return {market:"Others",sub:""};
+}
+/* Keeps the Sub-category dropdown in step with the Market Space dropdown. */
+function linkSub(mEl,sEl){
+  if(!mEl||!sEl) return;
+  const sync=()=>{
+    const opts=SUBMARKETS[mEl.value]||[""], cur=sEl.value;
+    sEl.textContent="";
+    opts.forEach(o=>{ const v=Array.isArray(o)?o[0]:o, t=Array.isArray(o)?o[1]:o; sEl.append(el("option",{value:v,text:t||(opts.length>1?"Select…":"—")})); });
+    sEl.value=opts.some(o=>(Array.isArray(o)?o[0]:o)===cur)?cur:"";
+    sEl.disabled=opts.length<2;
+  };
+  mEl.addEventListener("change",sync); sEl._sync=sync; sync();
+}
 const MODULES={
   price:{
     key:"price", title:"Price Survey", noun:"price", col:"survey/prices", localKey:"uli-price-survey-v1",
     sub:"Competitor pricelists captured on field visits.",
     photoTitle:"Capture a price list", photoHint:"Take a clear, straight, well-lit photo. For long lists, shoot one section at a time so the small print stays readable. Prices are read as soon as the photo is added.",
     photoBtn:"Read prices from photo", manualTitle:"Enter a price manually",
-    manualHint:"Date, province, brand and your recorder details stay filled in after each save, so you can log a whole price list quickly.",
-    layout:"rows", reviewCols:"1fr 1.7fr .9fr .7fr .9fr .9fr 38px",
-    batch:["date","location"], keep:["date","location","brand"], sortKey:"product",
+    manualHint:"Date, province, account, brand, market space, sub-category and your recorder details stay filled in after each save, so you can log a whole price list quickly.",
+    layout:"rows", reviewCols:"1fr 1.5fr 1fr .9fr .9fr .7fr .9fr .9fr 38px",
+    batch:["date","location","account"], keep:["date","location","account","brand","market","submarket"], sortKey:"product",
     fields:[
       {k:"date",label:"Date Recorded",type:"date",span:2,req:1},
       {k:"location",label:"Location (Province)",type:"select",opts:PROVINCES,span:4,req:1},
+      {k:"account",label:"Account Name",span:4,req:1,ph:"e.g. ABC Motor Parts, Calamba"},
       {k:"brand",label:"Brand",list:"brandList",span:2,req:1,ph:"e.g. Petron"},
       {k:"product",label:"Product Name",span:4,req:1,wide:1,ph:"e.g. Rev-X HD"},
+      {k:"market",label:"Market Space",type:"select",opts:MARKETS,span:2},
+      {k:"submarket",label:"Sub-category",type:"select",opts:ALL_SUBS,span:2},
       {k:"viscosity",label:"Viscosity Grade",list:"viscList",span:3,ph:"e.g. 15W-40"},
       {k:"packsize",label:"Packsize",list:"packList",span:3,ph:"e.g. 1L"},
       {k:"trade",label:"Trade Price",type:"money",span:3},
@@ -561,14 +598,14 @@ const recLabel=r=>{ const n=r.recName||"", p=r.recPosition||"", c=r.recCompany||
 function setVal(f,i,v){ v=v==null?"":v; if(f.type==="select"&&v&&![...i.options].some(o=>o.value===v)) i.append(el("option",{value:v,text:v})); i.value=v; }
 /* Grid spans per field: [laptop of 4, tablet of 2, mobile of 2] */
 const GRID={
-  price:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,2],location:[3,1,2],brand:[1,1,2],product:[3,1,2],viscosity:[1,1,1],packsize:[1,1,1],trade:[1,1,1],srp:[1,1,1]},
+  price:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,2],location:[1,1,2],account:[2,2,2],brand:[1,1,2],product:[3,1,2],market:[2,1,2],submarket:[2,1,2],viscosity:[1,1,1],packsize:[1,1,1],trade:[1,1,1],srp:[1,1,1]},
   programs:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],program:[4,2,2],mechanics:[4,2,2],rewards:[4,2,2],photos:[4,2,2]},
   merch:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],items:[4,2,2],photos:[4,2,2]}
 };
 const gstyle=(mod,k)=>{ const g=(GRID[mod.key]||{})[k]||[4,2,2]; return "--s:"+g[0]+";--t:"+g[1]+";--m:"+g[2]; };
-const TH={date:"Date",location:"Province",area:"Province",viscosity:"Viscosity",items:"Items"};
+const TH={date:"Date",location:"Province",area:"Province",account:"Account",market:"Market",submarket:"Sub-category",viscosity:"Viscosity",items:"Items"};
 const STACK_WIDE=["location","product","program","mechanics","rewards","items"];
-const SEARCH_PH={price:"Search province, brand, product, viscosity or recorder",programs:"Search brand, province, program, rewards or recorder",merch:"Search brand, province, items or recorder"};
+const SEARCH_PH={price:"Search account, province, brand, product, market or recorder",programs:"Search brand, province, program, rewards or recorder",merch:"Search brand, province, items or recorder"};
 /* ---------- Navigation ---------- */
 const PANELS=["summary","price","programs","merch"];
 function go(name){
@@ -585,7 +622,7 @@ const CODE_KEY="cdb-access-code";
 const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
 const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
 
-const APP_VERSION="v13 · Nov 5, 2026";
+const APP_VERSION="v15 · Nov 5, 2026";
 let READER_NAME="Google Gemini";
 async function api(action,data,signal){
   const t=new AbortController(), limit=action==="read"?240000:action==="upload"?120000:45000;
@@ -756,7 +793,7 @@ async function toJpeg(file,max=2400,q=0.9){
 
 function makeInput(f,val,cls){
   let i;
-  if(f.type==="select"){ i=el("select",{class:cls||""}); f.opts.forEach(o=>i.append(el("option",{value:o,text:o||(f.opts===PROVINCES?"Select province…":"Select…")}))); i.value=val||""; }
+  if(f.type==="select"){ i=el("select",{class:cls||""}); f.opts.forEach(o=>{ const v=Array.isArray(o)?o[0]:o, t=Array.isArray(o)?o[1]:o; i.append(el("option",{value:v,text:t||(f.opts===PROVINCES?"Select province…":"Select…")})); }); i.value=val||""; }
   else if(f.type==="long"){ i=el("textarea",{class:cls||""}); i.value=val||""; }
   else{
     i=el("input",{class:cls||"",type:f.type==="date"?"date":f.type==="money"?"number":"text"});
@@ -921,7 +958,7 @@ function buildModule(mod){
       const r=await api("read",{images:[await blobToB64(blob)]},ac.signal);
       if(r.photos&&r.photos[0]) p.driveId=r.photos[0];
       if(r.reader) usedReaders.add(r.reader);
-      return (r.rows||[]).filter(o=>o&&typeof o==="object").map(o=>({brand:String(o.brand||"").trim(),product:String(o.product_name||o.product||"").trim(),viscosity:String(o.viscosity||"").trim(),packsize:String(o.packsize||"").trim(),trade:num(o.trade_price),srp:num(o.srp)})).filter(r=>r.product||r.brand);
+      return (r.rows||[]).filter(o=>o&&typeof o==="object").map(o=>({brand:String(o.brand||"").trim(),product:String(o.product_name||o.product||"").trim(),...(()=>{ const m=normMarket(o.market_space||o.market||o.category,o.sub_category||o.subcategory); return {market:m.market,submarket:m.sub}; })(),viscosity:String(o.viscosity||"").trim(),packsize:String(o.packsize||"").trim(),trade:num(o.trade_price),srp:num(o.srp)})).filter(r=>r.product||r.brand);
     }
     let added=0, failed=0, aiNote=""; const usedReaders=new Set();
     try{
@@ -968,6 +1005,7 @@ function buildModule(mod){
       else { const w=el("div",{class:f.wide?"wide":""},el("span",{class:"rl",text:f.label+(f.type==="money"?" (₱)":"")}),i); row.append(w); }
     });
     row.append(el("button",{type:"button",class:"x","aria-label":"Remove row",text:"×",onclick:()=>{ row.remove(); updSave(); }}));
+    const sEl=row.querySelector('[data-k="submarket"]'); if(sEl){ const want=r&&r.submarket; linkSub(row.querySelector('[data-k="market"]'),sEl); if(want){ sEl.value=want; } }
     review.append(row);
   }
   function renderReview(rows,append){
@@ -1010,6 +1048,7 @@ function buildModule(mod){
   mod.fields.forEach(f=>{
     if(f.type==="photos"){ const w=photoField(mod.key+"-"+f.k,f.folder); mInputs[f.k]=w; mGrid.append(el("div",{class:"field",style:gstyle(mod,f.k)},el("span",{text:f.label+" (optional, up to "+MAX_PHOTOS+")"}),w.node)); return; }
     const i=makeInput(f,f.type==="date"&&f.k==="date"?today():""); mInputs[f.k]=i; const lab=el("label",{class:"field",style:gstyle(mod,f.k)},el("span",{text:f.label+(f.type==="money"?" (₱)":"")}),i); mGrid.append(lab); });
+  if(mInputs.submarket) linkSub(mInputs.market,mInputs.submarket);
   const mTitle=el("h2",{text:mod.manualTitle});
   const mSubmit=el("button",{class:"btn primary",type:"submit",text:"Save record"});
   const mCancel=el("button",{class:"btn ghost",type:"button",text:"Cancel edit",hidden:""});
@@ -1017,10 +1056,12 @@ function buildModule(mod){
   const form=el("form",{novalidate:"",autocomplete:"off"},mGrid,el("div",{class:"row",style:"margin-top:16px"},mSubmit,mCancel),mStatus);
   views.manual=el("div",{hidden:""},el("div",{class:"card"},mTitle,el("p",{class:"hint",text:mod.manualHint}),form));
   const firstFree=mod.fields.find(f=>!mod.keep.includes(f.k));
-  function clearEntry(){ mod.fields.forEach(f=>{ if(mod.keep.includes(f.k)) return; if(f.type==="photos") mInputs[f.k].set([]); else mInputs[f.k].value=""; }); }
+  function clearEntry(){ mod.fields.forEach(f=>{ if(mod.keep.includes(f.k)) return; if(f.type==="photos") mInputs[f.k].set([]); else mInputs[f.k].value=""; }); if(mInputs.submarket&&mInputs.submarket._sync) mInputs.submarket._sync(); }
   function startEdit(r){
     editingId=r.id; tab("manual"); mTitle.textContent="Edit record";
-    mod.fields.forEach(f=>{ if(f.type==="photos") mInputs[f.k].set(r[f.k]); else setVal(f,mInputs[f.k],r[f.k]); });
+    const rr={...r}; if(mInputs.submarket&&rr.market&&!SUBMARKETS[rr.market]&&/^(DEO|GEO)$/.test(rr.market)){ const m=normMarket(rr.market); rr.market=m.market; rr.submarket=rr.submarket||m.sub; }
+    mod.fields.forEach(f=>{ if(f.type==="photos") mInputs[f.k].set(rr[f.k]); else if(f.k!=="submarket") setVal(f,mInputs[f.k],rr[f.k]); });
+    if(mInputs.submarket){ mInputs.submarket._sync&&mInputs.submarket._sync(); mInputs.submarket.value=rr.submarket||""; }
     mSubmit.textContent="Update record"; mCancel.hidden=false; mStatus.textContent=""; mInputs[firstFree.k].focus();
   }
   function endEdit(){ editingId=null; mTitle.textContent=mod.manualTitle; mSubmit.textContent="Save record"; mCancel.hidden=true; clearEntry(); fillRec(true); }
