@@ -632,7 +632,7 @@ const CODE_KEY="cdb-access-code";
 const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
 const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
 
-const APP_VERSION="v16 · Nov 5, 2026";
+const APP_VERSION="v17 · Nov 5, 2026";
 let READER_NAME="Google Gemini";
 async function api(action,data,signal){
   const t=new AbortController(), limit=action==="read"?240000:action==="upload"?120000:45000;
@@ -1196,24 +1196,31 @@ function renderSummary(){
   // Price survey card
   const last=a=>a.map(r=>r.date).filter(Boolean).sort().pop();
   const visc=r=>{ if(r.viscosity) return r.viscosity; const m=String(r.product||"").toUpperCase().match(/\b\d{1,2}W-?\d{2,3}\b|\bSAE ?\d{2,3}\b|\bNLGI ?\d\b/); return m?m[0].replace(/^(\d{1,2}W)(\d)/,"$1-$2").replace(/^(SAE|NLGI)(\d)/,"$1 $2"):""; };
+  const mktLabel=r=>{ let m=r.market||"", sb=r.submarket||""; if(/^(DEO|GEO)$/.test(m)){ sb=sb||m; m="PCMO"; } return m?(sb?m+" – "+sb:m):"—"; };
+  const acctKey=r=>String(r.account||"").trim().toLowerCase().replace(/\s+/g," ");
   const groups={};
-  P.forEach(r=>{ const v=visc(r)||"—"; const k=(r.brand||"—")+"|"+v+"|"+(r.packsize||"—"); (groups[k]=groups[k]||{brand:r.brand||"—",visc:v,pack:r.packsize||"—",sku:new Set(),t:[],s:[],m:[]}); const g=groups[k]; g.sku.add((r.product||"").toLowerCase()); if(r.trade!=null) g.t.push(r.trade); if(r.srp!=null) g.s.push(r.srp); if(r.trade!=null&&r.srp) g.m.push((r.srp-r.trade)/r.srp*100); });
-  const grows=Object.values(groups).sort((a,b)=>a.brand.localeCompare(b.brand)||a.visc.localeCompare(b.visc,undefined,{numeric:true})||a.pack.localeCompare(b.pack,undefined,{numeric:true})).map(g=>{ const m=avg(g.m); return [g.brand,g.visc,g.pack,peso(avg(g.t)),peso(avg(g.s)),m==null?"":el("span",{class:"pos",text:m.toFixed(1)+"%"})]; });
+  P.forEach(r=>{ const mk=mktLabel(r), pk=r.packsize||"—"; const k=(r.brand||"—")+"|"+mk+"|"+pk;
+    const g=(groups[k]=groups[k]||{brand:r.brand||"—",mkt:mk,pack:pk,t:[],s:[],m:[],acc:new Set()});
+    if(r.trade!=null) g.t.push(r.trade); if(r.srp!=null) g.s.push(r.srp); if(r.trade!=null&&r.srp) g.m.push((r.srp-r.trade)/r.srp*100);
+    if(acctKey(r)) g.acc.add(acctKey(r)); });
+  const MKT_ORDER=["MCO","MCO – Bikes","MCO – Scooter","PCMO","PCMO – DEO","PCMO – GEO"];
+  const mo=x=>{ const i=MKT_ORDER.indexOf(x); return i<0?99:i; };
+  const grows=Object.values(groups).sort((a,b)=>a.brand.localeCompare(b.brand)||mo(a.mkt)-mo(b.mkt)||a.mkt.localeCompare(b.mkt)||a.pack.localeCompare(b.pack,undefined,{numeric:true})).map(g=>{ const m=avg(g.m); return [g.brand,g.mkt,g.pack,peso(avg(g.t)),peso(avg(g.s)),m==null?"":el("span",{class:"pos",text:m.toFixed(1)+"%"}),String(g.acc.size)]; });
   const latest={};
   P.forEach(r=>{ const k=[r.brand,r.product,visc(r),r.packsize].join("|").toLowerCase(); const c=latest[k]; if(!c||(r.date||"")>(c.date||"")||((r.date||"")===(c.date||"")&&r.createdAt>c.createdAt)) latest[k]=r; });
-  const lrows=Object.values(latest).sort((a,b)=>(a.brand||"").localeCompare(b.brand||"")||(a.product||"").localeCompare(b.product||"")||(a.packsize||"").localeCompare(b.packsize||"",undefined,{numeric:true})).map(r=>[r.brand,r.product,visc(r),r.packsize,peso(r.trade),peso(r.srp),r.location||"",fmtDate(r.date)]);
+  const lrows=Object.values(latest).sort((a,b)=>(a.brand||"").localeCompare(b.brand||"")||mo(mktLabel(a))-mo(mktLabel(b))||(a.product||"").localeCompare(b.product||"")||(a.packsize||"").localeCompare(b.packsize||"",undefined,{numeric:true})).map(r=>[r.brand,r.product,mktLabel(r),visc(r),r.packsize,r.units!=null&&r.units!==""?String(r.units):"",peso(r.trade),peso(r.srp),r.account||"",r.location||"",fmtDate(r.date)]);
   sBody.append(el("div",{class:"card"},
     el("h2",{text:"Price Survey"}),
     el("div",{class:"stats"},
       el("div",{class:"stat"},el("b",{text:String(P.length)}),el("span",{text:"Price records"})),
       el("div",{class:"stat"},el("b",{text:String(uniq(P.map(r=>r.brand)).length)}),el("span",{text:"Brands surveyed"})),
-      el("div",{class:"stat"},el("b",{text:String(uniq(P.map(r=>(r.location||"").toLowerCase())).length)}),el("span",{text:"Provinces visited"})),
+      el("div",{class:"stat"},el("b",{text:String(uniq(P.map(acctKey)).length)}),el("span",{text:"Accounts surveyed"})),
       el("div",{class:"stat"},el("b",{text:fmtDate(last(P))}),el("span",{text:"Latest survey"}))),
-    el("h3",{text:"Prices by brand, viscosity and packsize"}),
-    table(["Brand","Viscosity","Packsize","Avg trade price","Avg SRP/RRP","Margin %"],grows,[3,4,5]),
-    el("p",{class:"hint",style:"margin-top:6px",text:"Margin is (SRP/RRP − trade price) ÷ SRP/RRP, for records that have both prices."}),
+    el("h3",{text:"Prices by brand, market space and packsize"}),
+    table(["Brands","Market Space","Packsize","Ave Trade Price","Ave SRP / RRP","% Margin","# of Accounts Surveyed"],grows,[3,4,5,6]),
+    el("p",{class:"hint",style:"margin-top:6px",text:"Prices are per bottle. % Margin is (SRP/RRP − trade price) ÷ SRP/RRP, for records that have both prices. Accounts are counted once per account name."}),
     el("h3",{text:"Latest price per product"}),
-    table(["Brand","Product name","Viscosity","Packsize","Trade price","SRP/RRP","Province","Date"],lrows,[4,5],true)));
+    table(["Brand","Product name","Market Space","Viscosity","Packsize","Units/Box","Trade price","SRP/RRP","Account","Province","Date"],lrows,[5,6,7],true)));
 
   // Programs card
   const byBrand={}; G.forEach(r=>{ const b=r.brand||"—"; byBrand[b]=(byBrand[b]||0)+1; });
