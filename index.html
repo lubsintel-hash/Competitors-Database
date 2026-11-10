@@ -482,6 +482,15 @@ function normMarket(v,sub){
   if(/NON|BRAKE|COOLANT/.test(s)) return {market:"Non-Lubes",sub:""};
   return {market:"Others",sub:""};
 }
+/* Splits "12X1L" / "24 x 500ml" into the bottle size and units per box. */
+function splitPack(pack,units){
+  let p=String(pack||"").trim(), u=units;
+  const m=p.match(/^(\d{1,3})\s*[xX×*]\s*(\d+(?:[.,]\d+)?\s*(?:ML|L|LTR|LITERS?|G|KG|GAL)?)$/i);
+  if(m){ p=m[2]; if(u==null||u==="") u=parseInt(m[1],10); }
+  const ml=p.match(/^(\d+(?:[.,]\d+)?)\s*ML$/i); if(ml){ const n=parseFloat(ml[1].replace(",","."))/1000; p=(+n.toFixed(3))+"L"; }
+  const l=p.match(/^(\d+(?:[.,]\d+)?)\s*(L|LTR|LITERS?)$/i); if(l) p=(+parseFloat(l[1].replace(",",".")).toFixed(3))+"L";
+  return {packsize:p,units:(u==null||u===""||isNaN(u))?null:Number(u)};
+}
 /* Keeps the Sub-category dropdown in step with the Market Space dropdown. */
 function linkSub(mEl,sEl){
   if(!mEl||!sEl) return;
@@ -501,7 +510,7 @@ const MODULES={
     photoTitle:"Capture a price list", photoHint:"Take a clear, straight, well-lit photo. For long lists, shoot one section at a time so the small print stays readable. Prices are read as soon as the photo is added.",
     photoBtn:"Read prices from photo", manualTitle:"Enter a price manually",
     manualHint:"Date, province, account, brand, market space, sub-category and your recorder details stay filled in after each save, so you can log a whole price list quickly.",
-    layout:"rows", reviewCols:"1fr 1.5fr 1fr .9fr .9fr .7fr .9fr .9fr 38px",
+    layout:"rows", reviewCols:"1fr 1.4fr .95fr .9fr .8fr .65fr .55fr .85fr .85fr 38px",
     batch:["date","location","account"], keep:["date","location","account","brand","market","submarket"], sortKey:"product",
     fields:[
       {k:"date",label:"Date Recorded",type:"date",span:2,req:1},
@@ -512,7 +521,8 @@ const MODULES={
       {k:"market",label:"Market Space",type:"select",opts:MARKETS,span:2},
       {k:"submarket",label:"Sub-category",type:"select",opts:ALL_SUBS,span:2},
       {k:"viscosity",label:"Viscosity Grade",list:"viscList",span:3,ph:"e.g. 15W-40"},
-      {k:"packsize",label:"Packsize",list:"packList",span:3,ph:"e.g. 1L"},
+      {k:"packsize",label:"Packsize (per bottle)",list:"packList",span:3,ph:"e.g. 1L"},
+      {k:"units",label:"Units per Box",type:"int",span:3,ph:"e.g. 12"},
       {k:"trade",label:"Trade Price",type:"money",span:3},
       {k:"srp",label:"SRP/RRP",type:"money",span:3}
     ],
@@ -598,12 +608,12 @@ const recLabel=r=>{ const n=r.recName||"", p=r.recPosition||"", c=r.recCompany||
 function setVal(f,i,v){ v=v==null?"":v; if(f.type==="select"&&v&&![...i.options].some(o=>o.value===v)) i.append(el("option",{value:v,text:v})); i.value=v; }
 /* Grid spans per field: [laptop of 4, tablet of 2, mobile of 2] */
 const GRID={
-  price:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,2],location:[1,1,2],account:[2,2,2],brand:[1,1,2],product:[3,1,2],market:[2,1,2],submarket:[2,1,2],viscosity:[1,1,1],packsize:[1,1,1],trade:[1,1,1],srp:[1,1,1]},
+  price:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,2],location:[1,1,2],account:[2,2,2],brand:[1,1,2],product:[3,1,2],market:[1,1,2],submarket:[1,1,2],viscosity:[1,1,1],packsize:[1,1,1],units:[1,1,1],trade:[1,1,1],srp:[1,1,1]},
   programs:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],program:[4,2,2],mechanics:[4,2,2],rewards:[4,2,2],photos:[4,2,2]},
   merch:{recName:[2,2,2],recPosition:[1,1,2],recCompany:[1,1,2],date:[1,1,1],brand:[1,1,1],area:[2,2,2],items:[4,2,2],photos:[4,2,2]}
 };
 const gstyle=(mod,k)=>{ const g=(GRID[mod.key]||{})[k]||[4,2,2]; return "--s:"+g[0]+";--t:"+g[1]+";--m:"+g[2]; };
-const TH={date:"Date",location:"Province",area:"Province",account:"Account",market:"Market",submarket:"Sub-category",viscosity:"Viscosity",items:"Items"};
+const TH={packsize:"Packsize",units:"Units/Box",date:"Date",location:"Province",area:"Province",account:"Account",market:"Market",submarket:"Sub-category",viscosity:"Viscosity",items:"Items"};
 const STACK_WIDE=["location","product","program","mechanics","rewards","items"];
 const SEARCH_PH={price:"Search account, province, brand, product, market or recorder",programs:"Search brand, province, program, rewards or recorder",merch:"Search brand, province, items or recorder"};
 /* ---------- Navigation ---------- */
@@ -622,7 +632,7 @@ const CODE_KEY="cdb-access-code";
 const getCode=()=>{ try{ return localStorage.getItem(CODE_KEY)||""; }catch(e){ return ""; } };
 const setCode=c=>{ try{ localStorage.setItem(CODE_KEY,c); }catch(e){} };
 
-const APP_VERSION="v15 · Nov 5, 2026";
+const APP_VERSION="v16 · Nov 5, 2026";
 let READER_NAME="Google Gemini";
 async function api(action,data,signal){
   const t=new AbortController(), limit=action==="read"?240000:action==="upload"?120000:45000;
@@ -796,7 +806,8 @@ function makeInput(f,val,cls){
   if(f.type==="select"){ i=el("select",{class:cls||""}); f.opts.forEach(o=>{ const v=Array.isArray(o)?o[0]:o, t=Array.isArray(o)?o[1]:o; i.append(el("option",{value:v,text:t||(f.opts===PROVINCES?"Select province…":"Select…")})); }); i.value=val||""; }
   else if(f.type==="long"){ i=el("textarea",{class:cls||""}); i.value=val||""; }
   else{
-    i=el("input",{class:cls||"",type:f.type==="date"?"date":f.type==="money"?"number":"text"});
+    i=el("input",{class:cls||"",type:f.type==="date"?"date":(f.type==="money"||f.type==="int")?"number":"text"});
+    if(f.type==="int"){ i.step="1"; i.min="1"; i.inputMode="numeric"; i.classList.add("num"); }
     if(f.type==="money"){ i.step="0.01"; i.min="0"; i.inputMode="decimal"; i.classList.add("num"); }
     if(f.list) i.setAttribute("list",f.list);
     i.value=val==null?"":val;
@@ -804,7 +815,7 @@ function makeInput(f,val,cls){
   if(f.ph) i.placeholder=f.ph; else if(cls) i.placeholder=f.label;
   return i;
 }
-function readVal(f,i){ const v=i.value; if(f.type==="money") return toNum(v); if(f.type==="date") return toDate(v); return clean(v); }
+function readVal(f,i){ const v=i.value; if(f.type==="money") return toNum(v); if(f.type==="int"){ const n=parseInt(String(v).replace(/[^\d]/g,""),10); return isFinite(n)&&n>0?n:null; } if(f.type==="date") return toDate(v); return clean(v); }
 function displayVal(f,v){ if(f.type==="money") return peso(v); return v==null?"":String(v); }
 
 /* ---------- Frozen header row + first 3 columns ---------- */
@@ -958,7 +969,7 @@ function buildModule(mod){
       const r=await api("read",{images:[await blobToB64(blob)]},ac.signal);
       if(r.photos&&r.photos[0]) p.driveId=r.photos[0];
       if(r.reader) usedReaders.add(r.reader);
-      return (r.rows||[]).filter(o=>o&&typeof o==="object").map(o=>({brand:String(o.brand||"").trim(),product:String(o.product_name||o.product||"").trim(),...(()=>{ const m=normMarket(o.market_space||o.market||o.category,o.sub_category||o.subcategory); return {market:m.market,submarket:m.sub}; })(),viscosity:String(o.viscosity||"").trim(),packsize:String(o.packsize||"").trim(),trade:num(o.trade_price),srp:num(o.srp)})).filter(r=>r.product||r.brand);
+      return (r.rows||[]).filter(o=>o&&typeof o==="object").map(o=>({brand:String(o.brand||"").trim(),product:String(o.product_name||o.product||"").trim(),...(()=>{ const m=normMarket(o.market_space||o.market||o.category,o.sub_category||o.subcategory); return {market:m.market,submarket:m.sub}; })(),viscosity:String(o.viscosity||"").trim(),...splitPack(o.packsize,o.units_per_box!=null&&o.units_per_box!==""?parseInt(o.units_per_box,10):null),trade:num(o.trade_price),srp:num(o.srp)})).filter(r=>r.product||r.brand);
     }
     let added=0, failed=0, aiNote=""; const usedReaders=new Set();
     try{
@@ -1021,7 +1032,7 @@ function buildModule(mod){
     if(!b.date) b.date=today();
     const missB=mod.batch.map(F).filter(f=>f.req&&!b[f.k]).map(f=>f.label);
     if(missB.length){ toast("Fill in: "+missB.join(", ")); batchInputs[mod.batch.find(k=>!b[k]&&F(k).req)].focus(); return; }
-    const rows=[...review.querySelectorAll(".erow")].map(row=>{ const r={...b}; rowFields.forEach(f=>r[f.k]=readVal(f,row.querySelector(`[data-k="${f.k}"]`))); return r; }).filter(mod.keepRow);
+    const rows=[...review.querySelectorAll(".erow")].map(row=>{ const r={...b}; rowFields.forEach(f=>r[f.k]=readVal(f,row.querySelector(`[data-k="${f.k}"]`))); if("packsize" in r){ const sp=splitPack(r.packsize,r.units); r.packsize=sp.packsize; if(rowFields.some(f=>f.k==="units")) r.units=sp.units; } return r; }).filter(mod.keepRow);
     if(!rows.length){ toast("Fill in at least one row"); return; }
     saveRev.disabled=true;
     const n=rows.length, word=n+" price"+(n>1?"s":"");
@@ -1071,6 +1082,7 @@ function buildModule(mod){
   form.addEventListener("submit",async ev=>{
     ev.preventDefault(); mStatus.className="status";
     const rec={}; mod.fields.forEach(f=>{ if(f.type!=="photos") rec[f.k]=readVal(f,mInputs[f.k]); });
+    if("packsize" in rec){ const sp=splitPack(rec.packsize,rec.units); rec.packsize=sp.packsize; if("units" in rec) rec.units=sp.units; mInputs.packsize.value=sp.packsize; if(mInputs.units) mInputs.units.value=sp.units==null?"":sp.units; }
     const missing=mod.fields.filter(f=>f.req&&!rec[f.k]).map(f=>f.label);
     const err=missing.length?"Fill in: "+missing.join(", ")+".":mod.validate(rec);
     if(err){ mStatus.className="status err"; mStatus.textContent=err; return; }
